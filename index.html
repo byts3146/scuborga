@@ -1693,17 +1693,63 @@ function paramOpen(k){
 
 function paramAbout(){
   $('#paramSubBody').innerHTML=`<h2 style="font-size:16px">À propos de ${APP_META.name}</h2>
-    <p class="note">Application de gestion financière pour association de plongée. Cette version est une bêta : elle sert à tester le workflow, les écrans et la logique de classement avant un vrai stockage robuste.</p>
+    <p class="note">Application de gestion financière pour association de plongée. Cette version est une bêta : connexion sécurisée active et sauvegarde de tes données dans le cloud. La synchronisation complète (lecture/écriture directe depuis le cloud) est en cours de déploiement.</p>
     <div class="about-grid">
       <div class="about-k"><div class="lab">Application</div><div class="v">${APP_META.name}</div></div>
       <div class="about-k"><div class="lab">Version</div><div class="v">${APP_META.channel} ${APP_META.version}</div></div>
-      <div class="about-k"><div class="lab">Données</div><div class="v">Stockage local navigateur</div></div>
-      <div class="about-k"><div class="lab">Statut</div><div class="v">Prototype utilisable</div></div>
+      <div class="about-k"><div class="lab">Affichage</div><div class="v">Stockage local navigateur</div></div>
+      <div class="about-k"><div class="lab">Sauvegarde</div><div class="v">Cloud sécurisé (Supabase)</div></div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h2 style="font-size:15px">État du cloud</h2>
+      <p class="note">Vérifie en direct les données enregistrées côté serveur (ce que contient réellement le cloud, indépendamment de l'affichage local).</p>
+      <button class="btn" id="cloudCheckBtn" style="margin-top:10px" onclick="cloudCheck()">Vérifier le cloud</button>
+      <div id="cloudCheckResult" style="margin-top:12px"></div>
     </div>
     <div class="card" style="margin-top:14px">
       <h2>Limites bêta</h2>
-      <p class="note">Pas encore de comptes utilisateurs, pas de synchronisation multi-appareils, pas de sauvegarde serveur, pas de journal d'audit. Utilise Paramètres → Import / sauvegarde pour exporter régulièrement les données.</p>
+      <p class="note">La synchronisation multi-appareils en temps réel n'est pas encore active : les saisies faites maintenant dans l'appli restent locales tant que l'étape de branchement cloud n'est pas terminée. Continue d'exporter régulièrement via Paramètres → Import / sauvegarde.</p>
     </div>`;
+}
+
+// Interroge Supabase en direct et affiche les compteurs réels côté serveur
+async function cloudCheck(){
+  const box=$('#cloudCheckResult'); const btn=$('#cloudCheckBtn');
+  if(!sb){ box.innerHTML='<p class="note" style="color:var(--red)">Client cloud non chargé (vérifie ta connexion Internet).</p>'; return; }
+  btn.disabled=true; btn.textContent='Vérification…';
+  box.innerHTML='<p class="note">Interrogation du serveur…</p>';
+  try{
+    const tables=[
+      ['operations','Opérations'],
+      ['classification_sheets','Tables de classification'],
+      ['rules','Règles'],
+      ['settings','Réglages']
+    ];
+    const rows=[];
+    for(const [t,label] of tables){
+      const { count, error } = await sb.from(t).select('*',{count:'exact',head:true});
+      rows.push({label, count: error?('—'):(count), err: error?error.message:null});
+    }
+    // soldes réels stockés côté cloud
+    let solde='';
+    try{
+      const { data } = await sb.from('settings').select('value').eq('key','realBalances').single();
+      if(data && data.value){ solde=`CC ${eur(data.value.CC)} · EP ${eur(data.value.EP)}`; }
+    }catch(e){}
+    const anyErr=rows.some(r=>r.err);
+    box.innerHTML=`
+      <div class="about-grid">
+        ${rows.map(r=>`<div class="about-k"><div class="lab">${r.label}</div><div class="v">${r.count}</div></div>`).join('')}
+      </div>
+      ${solde?`<p class="note" style="margin-top:8px">Soldes enregistrés : ${solde}</p>`:''}
+      <p class="note" style="margin-top:8px;color:${anyErr?'var(--red)':'var(--green)'}">
+        ${anyErr?'Connexion établie mais accès partiel — vérifie que tu es bien connecté.':'✓ Connexion au cloud opérationnelle. Ces chiffres viennent directement du serveur.'}
+      </p>`;
+  }catch(e){
+    box.innerHTML='<p class="note" style="color:var(--red)">Échec de la vérification : '+(e.message||e)+'</p>';
+  }finally{
+    btn.disabled=false; btn.textContent='Vérifier le cloud';
+  }
 }
 
 /* --- Saison par défaut --- */
