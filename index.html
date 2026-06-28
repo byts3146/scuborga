@@ -3,10 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Scuborga · bêta 0.3.0</title>
+<title>Scuborga · bêta 0.3.1</title>
 <link rel="stylesheet" href="assets/styles.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+<!-- ÉCRAN DE CONNEXION (affiché tant que non authentifié) -->
+<div id="authGate">
+  <div class="auth-card">
+    <div class="auth-logo">🤿</div>
+    <div class="auth-title">ScubOrga</div>
+    <div class="auth-sub">Trésorerie · Napuka</div>
+    <div class="auth-field"><label>Email</label><input id="authEmail" type="email" autocomplete="username" placeholder="ton@email.fr"></div>
+    <div class="auth-field"><label>Mot de passe</label><input id="authPass" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+    <div id="authError" class="auth-error"></div>
+    <button id="authBtn" class="btn" style="width:100%" onclick="doLogin()">Se connecter</button>
+    <div class="auth-foot"><a href="#" onclick="doReset();return false;">Mot de passe oublié ?</a></div>
+  </div>
+</div>
 <div class="app">
   <header>
     <div class="htitle">
@@ -14,7 +28,7 @@
         <div class="appname" id="appName">Scuborga</div>
         <h1 id="hTitle">Tableau de bord</h1>
       </div>
-      <span class="version-badge" id="appVersion">bêta 0.3.0</span>
+      <span class="version-badge" id="appVersion">bêta 0.3.1</span>
     </div>
   </header>
 
