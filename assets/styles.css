@@ -242,3 +242,23 @@ header .version{font-size:11px;color:var(--muted);border:1px solid var(--line);b
 .small-link{color:var(--accent);text-decoration:none;font-weight:700;font-size:12px}.danger{color:var(--red)!important}.hidden{display:none!important}
 .filter-summary{font-size:12px;color:var(--muted);margin:4px 0 10px}.filter-summary b{color:var(--text)}
 .check-row{display:flex;gap:8px;align-items:center}.check-row input{width:auto}.check-row label{margin:0;color:var(--text);text-transform:none;letter-spacing:0;font-size:14px}
+
+
+/* v0.2.1 — reprise visuelle proche 0.1.x */
+body{padding-bottom:calc(70px + var(--safe));}
+.app{padding-bottom:0;}
+header{padding:14px 16px 12px;}
+.header-left{display:flex;align-items:baseline;gap:8px;}
+header .version{font-size:10.5px;background:rgba(74,158,255,.10);border-color:rgba(74,158,255,.28);color:var(--accent);}
+.header-right{font-size:10.5px;}
+.view{padding:16px;}
+.legacy-actions .action-card{cursor:pointer;color:var(--text);}
+.legacy-actions .action-card:active{opacity:.72;}
+.attn-item{color:var(--text);width:100%;}
+.attn-item b{font-size:18px;color:var(--amber);font-variant-numeric:tabular-nums;}
+.filterbar button.on,.quickbar button.on{background:var(--accent2);border-color:var(--accent2);color:#fff;}
+#opsList .tx{cursor:pointer;}
+#opsList .tx .meta span:not(.pill){white-space:nowrap;}
+.drawer{padding-top:8px;}
+.drawer::before{content:"";display:block;width:40px;height:4px;background:var(--line);border-radius:3px;margin:0 auto 14px;}
+@media(min-width:760px){.action-grid.legacy-actions{grid-template-columns:repeat(4,1fr)}}
