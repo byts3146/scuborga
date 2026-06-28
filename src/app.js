@@ -28,8 +28,75 @@ const Store = {
 /* Pour migrer vers Supabase: réimplémenter add/update/remove/all en appels async
    vers supabase.from('tx'), garder la même signature. Le reste du code ne change pas. */
 
+/* ============ SUPABASE — AUTHENTIFICATION (0.3.1) ============ */
+const SB_URL = 'https://jwwxcdkmlpewbnnstyrc.supabase.co';
+const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3d3hjZGttbHBld2JubnN0eXJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMzEzMjUsImV4cCI6MjA5NzkwNzMyNX0.VkiEZfGTbOzvkP4CKTmspUOJE0alRmcwzY-pfwiPSE4';
+let sb = null;
+try { sb = window.supabase.createClient(SB_URL, SB_ANON); } catch(e){ console.warn('Supabase non chargé', e); }
+
+function $a(id){ return document.getElementById(id); }
+
+async function doLogin(){
+  const email=($a('authEmail').value||'').trim();
+  const pass=$a('authPass').value||'';
+  const errEl=$a('authError'); errEl.style.color='var(--red)'; errEl.textContent='';
+  if(!email||!pass){ errEl.textContent='Renseigne ton email et ton mot de passe.'; return; }
+  if(!sb){ errEl.textContent='Connexion au serveur impossible (réseau ?).'; return; }
+  const btn=$a('authBtn'); btn.disabled=true; btn.textContent='Connexion…';
+  try{
+    const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+    if(error){ errEl.textContent = traduireErreurAuth(error.message); btn.disabled=false; btn.textContent='Se connecter'; return; }
+    onAuthOK();
+  }catch(e){ errEl.textContent='Erreur réseau. Réessaie.'; btn.disabled=false; btn.textContent='Se connecter'; }
+}
+
+async function doReset(){
+  const email=($a('authEmail').value||'').trim();
+  const errEl=$a('authError');
+  if(!email){ errEl.style.color='var(--red)'; errEl.textContent='Saisis d\u2019abord ton email, puis reclique sur « Mot de passe oublié ».'; return; }
+  if(!sb){ errEl.textContent='Connexion au serveur impossible.'; return; }
+  try{
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: 'https://byts3146.github.io/scuborga/' });
+    errEl.style.color = error ? 'var(--red)' : 'var(--green)';
+    errEl.textContent = error ? traduireErreurAuth(error.message) : 'Email de réinitialisation envoyé. Vérifie ta boîte mail.';
+  }catch(e){ errEl.style.color='var(--red)'; errEl.textContent='Erreur réseau.'; }
+}
+
+async function doLogout(){
+  if(sb){ try{ await sb.auth.signOut(); }catch(e){} }
+  location.reload();
+}
+
+function traduireErreurAuth(msg){
+  msg=(msg||'').toLowerCase();
+  if(msg.includes('invalid login')) return 'Email ou mot de passe incorrect.';
+  if(msg.includes('email not confirmed')) return 'Email non confirmé. Vérifie ta boîte mail.';
+  if(msg.includes('rate limit')) return 'Trop de tentatives. Patiente un instant.';
+  return 'Connexion impossible : '+msg;
+}
+
+function onAuthOK(){
+  const gate=$a('authGate'); if(gate) gate.style.display='none';
+  startApp();
+}
+
+// Restaure une session existante pour éviter de retaper le mot de passe à chaque ouverture.
+async function checkSession(){
+  if(!sb) return;
+  try{
+    const { data } = await sb.auth.getSession();
+    if(data && data.session){ onAuthOK(); return; }
+  }catch(e){}
+}
+
+// Entrée au clavier = se connecter (tant que l'écran de connexion est affiché)
+document.addEventListener('keydown',e=>{
+  const g=$a('authGate');
+  if(e.key==='Enter' && g && g.style.display!=='none'){ doLogin(); }
+});
+
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.3.0',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
+const APP_META={name:'Scuborga',version:'0.3.1',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -1198,7 +1265,13 @@ function paramHome(){
     <div class="card" style="cursor:pointer;display:flex;align-items:center;gap:12px" onclick="paramOpen('${k}')">
       <div style="flex:1"><div style="font-weight:600;font-size:15px">${t}</div>
         <div class="tag" style="margin-top:2px">${d}</div></div>
-      <span style="color:var(--muted);font-size:20px">›</span></div>`).join('');
+      <span style="color:var(--muted);font-size:20px">›</span></div>`).join('')
+    + `<div class="card" id="accountCard" style="margin-top:16px">
+        <div style="font-weight:600;font-size:15px;margin-bottom:4px">Compte</div>
+        <div class="tag" id="accountEmail">—</div>
+        <button class="btn ghost" style="margin-top:10px" onclick="doLogout()">Se déconnecter</button>
+      </div>`;
+  if(sb){ sb.auth.getUser().then(({data})=>{ const u=data&&data.user; if(u&&$('#accountEmail')) $('#accountEmail').textContent=u.email; }).catch(()=>{}); }
 }
 function paramGoHome(){ paramHome(); }
 function paramOpen(k){
@@ -1214,17 +1287,62 @@ function paramOpen(k){
 
 function paramAbout(){
   $('#paramSubBody').innerHTML=`<h2 style="font-size:16px">À propos de ${APP_META.name}</h2>
-    <p class="note">Application de gestion financière pour association de plongée. Cette version est une bêta : elle sert à tester le workflow, les écrans et la logique de classement avant un vrai stockage robuste.</p>
+    <p class="note">Application de gestion financière pour association de plongée. Connexion sécurisée active et sauvegarde des données dans le cloud. La synchronisation complète (lecture/écriture directe depuis le cloud) sera déployée dans les prochaines versions.</p>
     <div class="about-grid">
       <div class="about-k"><div class="lab">Application</div><div class="v">${APP_META.name}</div></div>
       <div class="about-k"><div class="lab">Version</div><div class="v">${APP_META.channel} ${APP_META.version}</div></div>
-      <div class="about-k"><div class="lab">Données</div><div class="v">Stockage local navigateur</div></div>
-      <div class="about-k"><div class="lab">Statut</div><div class="v">Prototype utilisable</div></div>
+      <div class="about-k"><div class="lab">Affichage</div><div class="v">Stockage local navigateur</div></div>
+      <div class="about-k"><div class="lab">Sauvegarde</div><div class="v">Cloud sécurisé (Supabase)</div></div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h2 style="font-size:15px">État du cloud</h2>
+      <p class="note">Vérifie en direct les données enregistrées côté serveur (indépendamment de l'affichage local).</p>
+      <button class="btn" id="cloudCheckBtn" style="margin-top:10px" onclick="cloudCheck()">Vérifier le cloud</button>
+      <div id="cloudCheckResult" style="margin-top:12px"></div>
     </div>
     <div class="card" style="margin-top:14px">
       <h2>Limites bêta</h2>
-      <p class="note">Pas encore de comptes utilisateurs, pas de synchronisation multi-appareils, pas de sauvegarde serveur, pas de journal d'audit. Utilise Paramètres → Import / sauvegarde pour exporter régulièrement les données.</p>
+      <p class="note">La synchronisation multi-appareils en temps réel n'est pas encore active : les saisies faites maintenant dans l'appli restent locales tant que le branchement cloud n'est pas terminé. Continue d'exporter régulièrement via Paramètres → Import / sauvegarde.</p>
     </div>`;
+}
+
+// Interroge Supabase en direct et affiche les compteurs réels côté serveur.
+async function cloudCheck(){
+  const box=$('#cloudCheckResult'); const btn=$('#cloudCheckBtn');
+  if(!sb){ box.innerHTML='<p class="note" style="color:var(--red)">Client cloud non chargé (vérifie ta connexion Internet).</p>'; return; }
+  btn.disabled=true; btn.textContent='Vérification…';
+  box.innerHTML='<p class="note">Interrogation du serveur…</p>';
+  try{
+    const tables=[
+      ['operations','Opérations'],
+      ['classification_sheets','Tables de classification'],
+      ['rules','Règles'],
+      ['settings','Réglages']
+    ];
+    const rows=[];
+    for(const [t,label] of tables){
+      const { count, error } = await sb.from(t).select('*',{count:'exact',head:true});
+      rows.push({label, count: error?'—':count, err: error?error.message:null});
+    }
+    let solde='';
+    try{
+      const { data } = await sb.from('settings').select('value').eq('key','realBalances').single();
+      if(data && data.value){ solde=`CC ${eur(data.value.CC)} · EP ${eur(data.value.EP)}`; }
+    }catch(e){}
+    const anyErr=rows.some(r=>r.err);
+    box.innerHTML=`
+      <div class="about-grid">
+        ${rows.map(r=>`<div class="about-k"><div class="lab">${r.label}</div><div class="v">${r.count}</div></div>`).join('')}
+      </div>
+      ${solde?`<p class="note" style="margin-top:8px">Soldes enregistrés : ${solde}</p>`:''}
+      <p class="note" style="margin-top:8px;color:${anyErr?'var(--red)':'var(--green)'}">
+        ${anyErr?'Connexion établie mais accès partiel — vérifie que tu es bien connecté.':'✓ Connexion au cloud opérationnelle. Ces chiffres viennent directement du serveur.'}
+      </p>`;
+  }catch(e){
+    box.innerHTML='<p class="note" style="color:var(--red)">Échec de la vérification : '+(e.message||e)+'</p>';
+  }finally{
+    btn.disabled=false; btn.textContent='Vérifier le cloud';
+  }
 }
 
 /* --- Saison par défaut --- */
@@ -1473,21 +1591,25 @@ function importBackupFile(input){
   r.readAsText(file);
 }
 
-/* ============ INIT ============ */
-Store.load();
-if(!Store.data.tx.length && !Store.data._seeded){
-  Store.data.tx = SEED.tx.slice();
-  Store.data.rules = SEED.rules.slice();
-  Store.data.seq = SEED.seq;
-  Store.data.season = null;
-  Store.data.realBalances = {CC:5204.06, EP:12968.71};
-  Store.data._seeded = true;
-  Store.save();
+/* ============ INIT (lancé seulement après authentification) ============ */
+function startApp(){
+  Store.load();
+  if(!Store.data.tx.length && !Store.data._seeded){
+    Store.data.tx = SEED.tx.slice();
+    Store.data.rules = SEED.rules.slice();
+    Store.data.seq = SEED.seq;
+    Store.data.season = null;
+    Store.data.realBalances = {CC:5204.06, EP:12968.71};
+    Store.data._seeded = true;
+    Store.save();
+  }
+  if(Store.data.sheets && Store.data.sheets['TABLE COMPTE']){
+    SHEETS = Store.data.sheets;       // tables éditées par l'utilisateur
+    rebuildRefFromSheets();           // régénère REF (cat2/cat3/compte/adherents)
+  } else if(Store.data.ref && Store.data.ref.typeFlux && Store.data.ref.cat2 && Store.data.ref.adherents){
+    REF = Store.data.ref;
+  }
+  go('dash');
 }
-if(Store.data.sheets && Store.data.sheets['TABLE COMPTE']){
-  SHEETS = Store.data.sheets;       // tables éditées par l'utilisateur
-  rebuildRefFromSheets();           // régénère REF (cat2/cat3/compte/adherents)
-} else if(Store.data.ref && Store.data.ref.typeFlux && Store.data.ref.cat2 && Store.data.ref.adherents){
-  REF = Store.data.ref;
-}
-go('dash');
+// Au chargement : tente de restaurer une session ; sinon l'écran de connexion reste affiché.
+checkSession();
