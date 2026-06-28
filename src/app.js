@@ -5,8 +5,8 @@ let SHEETS = {"TABLE COMPTE": {"header": ["Produit/Charges", "Cat. 1", "Cat. 2",
 
 /* ============ STORE (abstraction — migration Supabase facile) ============ */
 const Store = {
-  _k:'scuborga_v0_1_1_beta',
-  _legacyKeys:['scuborga_v0_1_0_beta','treso_v16'],
+  _k:'scuborga_v0_3_0_beta',
+  _legacyKeys:['scuborga_v0_1_1_beta','scuborga_v0_1_0_beta','treso_v16'],
   data:{ tx:[], rules:[], season:null, mapping:null, seq:1 },
   load(){ try{
     let r=localStorage.getItem(this._k);
@@ -29,7 +29,7 @@ const Store = {
    vers supabase.from('tx'), garder la même signature. Le reste du code ne change pas. */
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.1.1',channel:'bêta',storageKey:'scuborga_v0_1_1_beta'};
+const APP_META={name:'Scuborga',version:'0.3.0',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -1362,7 +1362,7 @@ function paramIO(){
 }
 
 
-/* ============ ERGONOMIE v0.1.1 ============ */
+/* ============ ERGONOMIE v0.3.0 ============ */
 let quickFilter=null;
 function monthKey(d){ return d ? String(d).slice(0,7) : ''; }
 function currentMonthKey(){
