@@ -188,7 +188,7 @@ tr.tblsel td{background:rgba(74,158,255,.10)}
 .lrow-edit{flex:0 0 auto;color:var(--accent);font-size:15px;padding:4px 6px}
 .muted-i{color:var(--muted);font-style:italic}
 
-/* Ergonomie v0.1.1 */
+/* Ergonomie v0.3.0 */
 .action-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
 .action-card{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:13px;text-align:left;min-height:76px}
 .action-card strong{display:block;font-size:14px;margin-bottom:3px}
