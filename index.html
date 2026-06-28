@@ -3,11 +3,169 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Scuborga · bêta 0.2.1</title>
-<link rel="stylesheet" href="./assets/styles.css">
+<title>Scuborga · bêta 0.1.1</title>
+<link rel="stylesheet" href="assets/styles.css">
 </head>
 <body>
-<noscript>Scuborga nécessite JavaScript.</noscript>
-<script type="module" src="./src/app.js"></script>
+<div class="app">
+  <header>
+    <div class="htitle">
+      <div class="brandblock">
+        <div class="appname" id="appName">Scuborga</div>
+        <h1 id="hTitle">Tableau de bord</h1>
+      </div>
+      <span class="version-badge" id="appVersion">bêta 0.1.1</span>
+    </div>
+  </header>
+
+  <!-- DASHBOARD -->
+  <section class="view active" id="v-dash">
+    <div class="card" style="padding:12px;margin-bottom:14px">
+      <label style="font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;display:block;margin-bottom:6px">Saison</label>
+      <select id="seasonSel"></select>
+    </div>
+    <div class="action-grid">
+      <button class="action-card" onclick="go('import')"><strong>📥 Importer un relevé</strong><span>CSV bancaire vers le brouillon</span></button>
+      <button class="action-card warn" onclick="go('classer')"><strong>🧾 À classer</strong><span><span id="dashDraftCount">0</span> ligne(s) à traiter</span></button>
+      <button class="action-card" onclick="go('controls')"><strong>🔎 Contrôles</strong><span>Doublons, incohérences, champs manquants</span></button>
+      <button class="action-card" onclick="downloadBackup()"><strong>💾 Sauvegarder</strong><span>Export local des données</span></button>
+    </div>
+    <div id="attentionCard" class="card"></div>
+    <div id="soldesCard" class="card"></div>
+    <div class="kpis">
+      <div class="kpi"><div class="lab">Produits</div><div class="val" id="kProd" style="color:var(--green)">—</div></div>
+      <div class="kpi"><div class="lab">Charges</div><div class="val" id="kChar" style="color:var(--red)">—</div></div>
+      <div class="kpi"><div class="lab">Résultat</div><div class="val" id="kRes">—</div></div>
+      <div class="kpi"><div class="lab">À classer</div><div class="val" id="kUnc" style="color:var(--amber)">—</div></div>
+    </div>
+    <div class="card">
+      <h2>Dernières opérations</h2>
+      <div id="recentList"></div>
+    </div>
+  </section>
+
+  <!-- IMPORT -->
+  <section class="view" id="v-import">
+    <div class="card">
+      <h2>Import CSV bancaire</h2>
+      <p class="note">Sélectionne l'export CSV de ta banque (Caisse d'Épargne reconnu automatiquement). Les opérations arrivent en brouillon dans l'onglet À classer. Le mapping est mémorisé.</p>
+      <input type="file" id="csvFile" accept=".csv,text/csv" style="margin:12px 0">
+      <div id="impFormat" class="rulehint" style="display:none"></div>
+      <div id="mapArea" style="display:none">
+        <div class="field"><label>Colonne Date</label><select id="mDate"></select></div>
+        <div class="field"><label>Colonne Libellé</label><select id="mLib"></select></div>
+        <div class="seg" id="amtMode">
+          <button data-m="split" class="on">Débit / Crédit séparés</button>
+          <button data-m="single">Montant unique</button>
+        </div>
+        <div class="row" id="splitCols">
+          <div class="field"><label>Débit</label><select id="mDeb"></select></div>
+          <div class="field"><label>Crédit</label><select id="mCred"></select></div>
+        </div>
+        <div class="field" id="singleCol" style="display:none"><label>Montant (±)</label><select id="mAmt"></select></div>
+        <div class="rulehint">ℹ️ <span id="impCount">0 ligne(s) détectée(s)</span></div>
+        <button class="btn" onclick="doImport()">Importer vers le brouillon</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SAISIE (brouillon) -->
+  <section class="view" id="v-classer">
+    <button class="btn" style="margin-bottom:12px" onclick="openTx(null,'REEL')">＋ Ajouter une opération</button>
+    <div id="draftActions" class="draftbar" style="display:none">
+      <label class="selall"><input type="checkbox" id="draftAll" onchange="toggleAllDrafts(this.checked)"> Tout</label>
+      <span id="draftSelCount" class="tag"></span>
+      <span style="flex:1"></span>
+      <button class="btn sm" onclick="draftAction('add')">✓ Aux opérations</button>
+      <button class="btn sec sm" onclick="draftAction('dup')">⎘ Dupliquer</button>
+      <button class="btn sec sm" onclick="draftAction('edit')">✎ Modifier</button>
+      <button class="btn sec sm" onclick="draftAction('del')"><span class="del">🗑 Supprimer</span></button>
+    </div>
+    <div id="incoherZone"></div>
+    <div id="classerHead" style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:600;letter-spacing:.03em;margin:4px 0 8px"></div>
+    <div id="classerEmpty" class="empty" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z"/></svg>
+      <p>Aucun brouillon. Ajoute une opération pour commencer.</p>
+    </div>
+    <div id="classerList"></div>
+  </section>
+
+  <!-- OPERATIONS -->
+  <section class="view" id="v-ops">
+    <div class="searchbar"><input id="opsSearch" placeholder="🔍 Rechercher (libellé, adhérent...)" oninput="renderOps()"></div>
+    <div class="quickbar" id="quickFilters">
+      <button data-q="month" onclick="toggleQuickFilter('month')">Ce mois-ci</button>
+      <button data-q="season" onclick="toggleQuickFilter('season')">Cette saison</button>
+      <button data-q="unpointed" onclick="toggleQuickFilter('unpointed')">Non pointées</button>
+      <button data-q="nojustif" onclick="toggleQuickFilter('nojustif')">Sans justificatif</button>
+      <button data-q="unclassified" onclick="toggleQuickFilter('unclassified')">À classer</button>
+    </div>
+    <div class="active-filters" id="activeFilterChips"></div>
+    <div class="ops-summary" id="opsSummary"></div>
+    <div class="filterbar" id="acctChips"></div>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <button class="btn sec sm" style="flex:1" onclick="openFilters()">⚙︎ Filtres avancés<span id="filterCount"></span></button>
+      <button class="btn ghost sm" style="flex:0 0 auto" onclick="clearFilters()">Réinitialiser</button>
+    </div>
+    <div id="futureZone"></div>
+    <div id="opsBalNote"></div>
+    <div id="opsList"></div>
+  </section>
+  <datalist id="adhListOps"></datalist>
+
+  <!-- REPORTING -->
+  <section class="view" id="v-report">
+    <div class="card" style="padding:12px">
+      <label style="font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;display:block;margin-bottom:6px">Saison</label>
+      <select id="repSeason"></select>
+    </div>
+    <div class="seg" id="repSeg">
+      <button data-r="cr" class="on">Résultat</button>
+      <button data-r="cacvcf">Analyse CA / CV / CF</button>
+      <button data-r="adh">Adhérents</button>
+      <button data-r="sortie">Sorties</button>
+    </div>
+    <div id="repBody"></div>
+    <button class="btn ghost sm" style="width:100%;margin-top:12px" onclick="exportReport()">⬇︎ Exporter le document</button>
+  </section>
+  <!-- CONTROLES -->
+  <section class="view" id="v-controls">
+    <div class="card">
+      <h2>Contrôles rapides</h2>
+      <p class="note">Liste des points qui peuvent fausser le suivi : brouillons, incohérences, champs manquants, doublons probables.</p>
+      <div id="controlsBody"></div>
+    </div>
+  </section>
+
+  <!-- PARAMETRES -->
+  <section class="view" id="v-param">
+    <div id="paramHome"></div>
+    <div id="paramSub" style="display:none">
+      <button class="btn ghost sm" style="margin-bottom:14px" onclick="paramGoHome()">‹ Retour aux réglages</button>
+      <div id="paramSubBody"></div>
+    </div>
+  </section>
+</div>
+
+<!-- NAV -->
+<nav id="nav">
+  <button data-v="dash" class="on" onclick="go('dash')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>Accueil</button>
+  <button data-v="ops" onclick="go('ops')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Opérations</button>
+  <button data-v="report" onclick="go('report')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg>Bilans</button>
+  <button data-v="classer" onclick="go('classer')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z"/></svg>À classer
+    <span class="badge" id="navBadge" style="display:none">0</span></button>
+  <button data-v="param" onclick="go('param')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Paramètres</button>
+</nav>
+
+<!-- SHEET -->
+<div class="sheet-bg" id="sheetBg"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="src/app.js"></script>
 </body>
 </html>
