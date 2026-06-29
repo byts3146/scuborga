@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Scuborga · bêta 0.3.1</title>
+<title>Scuborga · bêta 0.4.0</title>
 <style>
 :root{
   --bg:#0f1419; --surface:#1a2230; --surface2:#222d3d; --line:#2d3a4d;
@@ -256,7 +256,7 @@ tr.tblsel td{background:rgba(74,158,255,.10)}
         <div class="appname" id="appName">Scuborga</div>
         <h1 id="hTitle">Tableau de bord</h1>
       </div>
-      <span class="version-badge" id="appVersion">bêta 0.3.1</span>
+      <span class="version-badge" id="appVersion">bêta 0.4.0</span>
     </div>
   </header>
 
@@ -507,7 +507,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.3.1',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
+const APP_META={name:'Scuborga',version:'0.4.0',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -1698,11 +1698,11 @@ function paramOpen(k){
 
 function paramAbout(){
   $('#paramSubBody').innerHTML=`<h2 style="font-size:16px">À propos de ${APP_META.name}</h2>
-    <p class="note">Application de gestion financière pour association de plongée. Connexion sécurisée active et sauvegarde des données dans le cloud. La synchronisation complète (lecture/écriture directe depuis le cloud) sera déployée dans les prochaines versions.</p>
+    <p class="note">Application de gestion financière pour association de plongée. Connexion sécurisée active. Au démarrage, les données sont chargées depuis le cloud (lecture). L'écriture directe vers le cloud sera activée dans la prochaine version.</p>
     <div class="about-grid">
       <div class="about-k"><div class="lab">Application</div><div class="v">${APP_META.name}</div></div>
       <div class="about-k"><div class="lab">Version</div><div class="v">${APP_META.channel} ${APP_META.version}</div></div>
-      <div class="about-k"><div class="lab">Affichage</div><div class="v">Stockage local navigateur</div></div>
+      <div class="about-k"><div class="lab">Lecture</div><div class="v">Cloud au démarrage</div></div>
       <div class="about-k"><div class="lab">Sauvegarde</div><div class="v">Cloud sécurisé (Supabase)</div></div>
     </div>
     <div class="card" style="margin-top:14px">
@@ -1713,7 +1713,7 @@ function paramAbout(){
     </div>
     <div class="card" style="margin-top:14px">
       <h2>Limites bêta</h2>
-      <p class="note">La synchronisation multi-appareils en temps réel n'est pas encore active : les saisies faites maintenant dans l'appli restent locales tant que le branchement cloud n'est pas terminé. Continue d'exporter régulièrement via Paramètres → Import / sauvegarde.</p>
+      <p class="note">Les données affichées proviennent du cloud au démarrage. En revanche, les saisies et modifications faites dans l'appli restent encore locales (l'écriture cloud arrive à la prochaine version) : elles ne sont pas encore renvoyées au serveur. Continue d'exporter régulièrement via Paramètres → Import / sauvegarde.</p>
     </div>`;
 }
 
@@ -2002,20 +2002,108 @@ function importBackupFile(input){
   r.readAsText(file);
 }
 
-/* ============ INIT (lancé seulement après authentification) ============ */
-function startApp(){
-  Store.load();
-  if(!Store.data.tx.length && !Store.data._seeded){
-    Store.data.tx = SEED.tx.slice();
-    Store.data.rules = SEED.rules.slice();
-    Store.data.seq = SEED.seq;
-    Store.data.season = null;
-    Store.data.realBalances = {CC:5204.06, EP:12968.71};
-    Store.data._seeded = true;
-    Store.save();
+/* ============ LECTURE CLOUD (0.4.0) ============ */
+// Convertit une ligne Supabase (table operations) vers le format interne de l'appli.
+function cloudRowToTx(r){
+  return {
+    id: r.legacy_id || r.id,
+    account: r.account || 'CC',
+    typeflux: r.typeflux || '',
+    cat1: r.cat1 || '', cat2: r.cat2 || '', cat3: r.cat3 || '',
+    compte: r.compte || '',
+    season: r.season || '',
+    nature: r.nature || '',
+    libelle: r.libelle || '',
+    date: r.op_date || '',
+    debit: Number(r.debit || 0),
+    credit: Number(r.credit || 0),
+    adherent: r.adherent || '',
+    justif: r.justif || '',
+    comment: r.comment || '',
+    lettrage: r.lettrage || '',
+    pointage: r.pointage || '',
+    origStatus: r.orig_status || '',
+    isPrev: !!r.is_prev,
+    status: r.status || ''
+  };
+}
+
+// Récupère TOUTES les opérations (pagination par 1000, limite Supabase).
+async function fetchAllOperations(){
+  const PAGE=1000; let from=0; let out=[];
+  for(;;){
+    const { data, error } = await sb.from('operations')
+      .select('*').order('op_date',{ascending:false, nullsFirst:false})
+      .range(from, from+PAGE-1);
+    if(error) throw error;
+    out=out.concat(data);
+    if(!data || data.length<PAGE) break;
+    from+=PAGE;
   }
+  return out;
+}
+
+// Charge opérations + tables + règles + réglages depuis Supabase dans Store.data.
+// Renvoie true si OK, false sinon (l'appelant gère le repli local).
+async function loadFromCloud(){
+  if(!sb) return false;
+  try{
+    const ops = await fetchAllOperations();
+    const { data: sheetsRows, error: e2 } = await sb.from('classification_sheets').select('*');
+    if(e2) throw e2;
+    const { data: rulesRows, error: e3 } = await sb.from('rules').select('*');
+    if(e3) throw e3;
+    const { data: setRows, error: e4 } = await sb.from('settings').select('*');
+    if(e4) throw e4;
+
+    // Opérations
+    Store.data.tx = ops.map(cloudRowToTx);
+
+    // Tables de classification → objet {NOM:{header,rows}}
+    const sheets={};
+    (sheetsRows||[]).forEach(s=>{ sheets[s.name]={header:s.header, rows:s.rows}; });
+    if(Object.keys(sheets).length){ Store.data.sheets = sheets; }
+
+    // Règles
+    Store.data.rules = (rulesRows||[]).map(r=>({match:r.match, typeflux:r.typeflux, cat1:r.cat1, cat2:r.cat2, cat3:r.cat3}));
+
+    // Réglages
+    (setRows||[]).forEach(row=>{
+      if(row.key==='realBalances') Store.data.realBalances = row.value;
+      else if(row.key==='seq') Store.data.seq = Number(row.value)||Store.data.seq;
+      else if(row.key==='defaultSeason') Store.data.defaultSeason = row.value || null;
+    });
+
+    Store.data._fromCloud = true;
+    return true;
+  }catch(e){
+    console.warn('Chargement cloud échoué', e);
+    return false;
+  }
+}
+
+/* ============ INIT (lancé seulement après authentification) ============ */
+async function startApp(){
+  let cloudOK=false;
+  try{ cloudOK = await loadFromCloud(); }catch(e){ cloudOK=false; }
+
+  if(!cloudOK){
+    // Repli : comportement local habituel (aucun écran vide si le cloud est injoignable)
+    toast('Cloud injoignable — données locales');
+    Store.load();
+    if(!Store.data.tx.length && !Store.data._seeded){
+      Store.data.tx = SEED.tx.slice();
+      Store.data.rules = SEED.rules.slice();
+      Store.data.seq = SEED.seq;
+      Store.data.season = null;
+      Store.data.realBalances = {CC:5204.06, EP:12968.71};
+      Store.data._seeded = true;
+      Store.save();
+    }
+  }
+
   if(Store.data.sheets && Store.data.sheets['TABLE COMPTE']){
-    SHEETS = Store.data.sheets;       // tables éditées par l'utilisateur
+    SHEETS = Store.data.sheets;       // tables (cloud ou éditées localement)
     rebuildRefFromSheets();           // régénère REF (cat2/cat3/compte/adherents)
   } else if(Store.data.ref && Store.data.ref.typeFlux && Store.data.ref.cat2 && Store.data.ref.adherents){
     REF = Store.data.ref;
