@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Scuborga · bêta 0.6.0</title>
+<title>Scuborga · bêta 0.7.0</title>
 <style>
 :root{
   --bg:#0f1419; --surface:#1a2230; --surface2:#222d3d; --line:#2d3a4d;
@@ -261,7 +261,7 @@ tr.tblsel td{background:rgba(74,158,255,.10)}
         <h1 id="hTitle">Tableau de bord</h1>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-        <span class="version-badge" id="appVersion">bêta 0.6.0</span>
+        <span class="version-badge" id="appVersion">bêta 0.7.0</span>
         <span id="syncBadge" class="sync-ok">☁︎ Synchronisé</span>
       </div>
     </div>
@@ -438,7 +438,7 @@ const Store = {
   add(t){ t.id='t'+(this.data.seq++); this.data.tx.push(t); this.save(); CloudSync.pushTx(t); CloudSync.pushSeq(); return t; },
   update(id,patch){ const t=this.data.tx.find(x=>x.id===id); if(t){Object.assign(t,patch);this.save();CloudSync.pushTx(t);} return t; },
   remove(id){ this.data.tx=this.data.tx.filter(x=>x.id!==id); this.save(); CloudSync.deleteTx(id); },
-  addRule(r){ this.data.rules=this.data.rules.filter(x=>x.match!==r.match); this.data.rules.push(r); this.save(); },
+  addRule(r){ this.data.rules=this.data.rules.filter(x=>x.match!==r.match); this.data.rules.push(r); this.save(); CloudSync.pushRule(r); },
   rules(){ return this.data.rules; },
   saveRef(){ this.data.ref = REF; this.save(); }
 };
@@ -505,6 +505,34 @@ const CloudSync = {
   pushSeq(){ this.pushSetting('seq', Store.data.seq); },
   pushBalances(){ this.pushSetting('realBalances', Store.data.realBalances||{}); },
 
+  // Tables de classification -> table classification_sheets (upsert par nom)
+  pushSheet(name){
+    if(!sb) return;
+    if(Store.data._fromCloud!==true) return;
+    const sh = (Store.data.sheets && Store.data.sheets[name]) || (typeof SHEETS!=='undefined' && SHEETS[name]);
+    if(!sh) return;
+    this.queue.push({kind:'sheet', name, header: sh.header||[], rows: sh.rows||[]});
+    this.pending=this.queue.length; this.updateBadge(); this.run();
+  },
+  // Pousse toutes les tables (utile après un import/réorganisation globale)
+  pushAllSheets(){
+    const src = Store.data.sheets || (typeof SHEETS!=='undefined' ? SHEETS : {});
+    Object.keys(src||{}).forEach(n=>this.pushSheet(n));
+  },
+  // Règles -> table rules (upsert par match)
+  pushRule(r){
+    if(!sb) return;
+    if(Store.data._fromCloud!==true) return;
+    this.queue.push({kind:'rule', rule:{match:r.match, typeflux:r.typeflux||'', cat1:r.cat1||'', cat2:r.cat2||'', cat3:r.cat3||''}});
+    this.pending=this.queue.length; this.updateBadge(); this.run();
+  },
+  deleteRule(match){
+    if(!sb) return;
+    if(Store.data._fromCloud!==true) return;
+    this.queue.push({kind:'ruleDelete', match});
+    this.pending=this.queue.length; this.updateBadge(); this.run();
+  },
+
   async run(){
     if(this.running || !sb) return;
     this.running=true;
@@ -522,6 +550,18 @@ const CloudSync = {
         } else if(item.kind==='setting'){
           const { error } = await sb.from('settings')
             .upsert({ key:item.key, value:item.value, updated_at:new Date().toISOString() }, { onConflict:'key' });
+          if(error) throw error;
+        } else if(item.kind==='sheet'){
+          const { error } = await sb.from('classification_sheets')
+            .upsert({ name:item.name, header:item.header, rows:item.rows, updated_at:new Date().toISOString() }, { onConflict:'name' });
+          if(error) throw error;
+        } else if(item.kind==='rule'){
+          const { error } = await sb.from('rules')
+            .upsert({ ...item.rule, updated_at:new Date().toISOString() }, { onConflict:'match' });
+          if(error) throw error;
+        } else if(item.kind==='ruleDelete'){
+          const { error } = await sb.from('rules')
+            .delete().eq('match', item.match);
           if(error) throw error;
         }
         this.queue.shift();               // succès : on retire de la file
@@ -619,7 +659,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.6.0',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
+const APP_META={name:'Scuborga',version:'0.7.0',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -1825,7 +1865,7 @@ function paramAbout(){
     </div>
     <div class="card" style="margin-top:14px">
       <h2>Limites bêta</h2>
-      <p class="note">L'application nécessite désormais une connexion Internet : les données sont dans le cloud, plus en dur dans le fichier. Si le cloud est injoignable au démarrage, l'appli affiche les données de la dernière session si elles sont en cache, sinon elle invite à recharger. Tes opérations sont renvoyées au cloud en arrière-plan (file d'attente + retry si le réseau manque). Les tables de classification et règles ne sont pas encore renvoyées au cloud quand tu les modifies — c'est pour une version ultérieure. Pense à exporter de temps en temps via Paramètres → Import / sauvegarde.</p>
+      <p class="note">L'application nécessite une connexion Internet : les données sont dans le cloud, plus en dur dans le fichier. Si le cloud est injoignable au démarrage, l'appli affiche les données de la dernière session si elles sont en cache, sinon elle invite à recharger. Toutes tes modifications — opérations, tables de classification, règles, soldes et saison — sont renvoyées au cloud en arrière-plan (file d'attente + retry si le réseau manque). Pense à exporter de temps en temps via Paramètres → Import / sauvegarde.</p>
     </div>`;
 }
 
@@ -1874,7 +1914,7 @@ function paramSeason(){
   $('#paramSubBody').innerHTML=`<h2 style="font-size:16px">Saison par défaut</h2>
     <p class="note">Saison sélectionnée automatiquement à l'ouverture de l'appli.</p>
     <select id="defSeason" style="margin-top:8px">${allSeasons().map(s=>`<option ${s===cur?'selected':''}>${s}</option>`).join('')}</select>`;
-  $('#defSeason').onchange=e=>{ Store.data.defaultSeason=e.target.value; Store.data.season=null; Store.save(); toast('Saison par défaut: '+e.target.value); };
+  $('#defSeason').onchange=e=>{ Store.data.defaultSeason=e.target.value; Store.data.season=null; Store.save(); CloudSync.pushSetting('defaultSeason', Store.data.defaultSeason); toast('Saison par défaut: '+e.target.value); };
 }
 
 /* --- Tables de classification : 1 volet par feuille --- */
@@ -1976,7 +2016,7 @@ function tblSort(sn,ci){ const sh=SHEETS[sn]; sh._sortCi=ci; sh._sortDir=(sh._so
 function editCell(sn,ri,ci,val){ SHEETS[sn].rows[ri][ci]=val.trim(); rebuildRefFromSheets(); persistSheets(); }
 function delRow(sn,ri){ confirmModal('Supprimer cette ligne ?', ()=>{ SHEETS[sn].rows.splice(ri,1); rebuildRefFromSheets(); persistSheets(); paramSheetEdit(sn); toast('Supprimée'); }, '🗑 Supprimer'); }
 function addRow(sn){ const n=SHEETS[sn].header.length; SHEETS[sn].rows.push(new Array(n).fill('')); rebuildRefFromSheets(); persistSheets(); paramSheetEdit(sn); }
-function persistSheets(){ Store.data.sheets=SHEETS; Store.save(); }
+function persistSheets(){ Store.data.sheets=SHEETS; Store.save(); CloudSync.pushAllSheets(); }
 
 /* --- Soldes d'ouverture --- */
 function paramSoldes(){
