@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Scuborga · bêta 0.4.0</title>
+<title>Scuborga · bêta 0.5.0</title>
 <style>
 :root{
   --bg:#0f1419; --surface:#1a2230; --surface2:#222d3d; --line:#2d3a4d;
@@ -32,6 +32,10 @@ header{position:sticky;top:0;z-index:30;background:rgba(15,20,25,.92);
 .appname{font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-bottom:2px}
 .version-badge{flex:0 0 auto;background:rgba(74,158,255,.12);border:1px solid rgba(74,158,255,.35);
   color:var(--accent);border-radius:999px;padding:4px 9px;font-size:11px;font-weight:700;white-space:nowrap}
+#syncBadge{flex:0 0 auto;border-radius:999px;padding:3px 9px;font-size:10px;font-weight:700;white-space:nowrap;border:1px solid transparent}
+#syncBadge.sync-ok{color:var(--green);background:rgba(63,185,80,.10);border-color:rgba(63,185,80,.30)}
+#syncBadge.sync-busy{color:var(--accent);background:rgba(74,158,255,.10);border-color:rgba(74,158,255,.30)}
+#syncBadge.sync-warn{color:#e3b341;background:rgba(227,179,65,.10);border-color:rgba(227,179,65,.35)}
 .about-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
 .about-k{background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:10px}
 .about-k .lab{font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:700;letter-spacing:.04em}
@@ -256,7 +260,10 @@ tr.tblsel td{background:rgba(74,158,255,.10)}
         <div class="appname" id="appName">Scuborga</div>
         <h1 id="hTitle">Tableau de bord</h1>
       </div>
-      <span class="version-badge" id="appVersion">bêta 0.4.0</span>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+        <span class="version-badge" id="appVersion">bêta 0.5.0</span>
+        <span id="syncBadge" class="sync-ok">☁︎ Synchronisé</span>
+      </div>
     </div>
   </header>
 
@@ -429,15 +436,121 @@ const Store = {
   }catch(e){} },
   save(){ localStorage.setItem(this._k, JSON.stringify(this.data)); },
   all(){ return this.data.tx; },
-  add(t){ t.id='t'+(this.data.seq++); this.data.tx.push(t); this.save(); return t; },
-  update(id,patch){ const t=this.data.tx.find(x=>x.id===id); if(t){Object.assign(t,patch);this.save();} return t; },
-  remove(id){ this.data.tx=this.data.tx.filter(x=>x.id!==id); this.save(); },
+  add(t){ t.id='t'+(this.data.seq++); this.data.tx.push(t); this.save(); CloudSync.pushTx(t); CloudSync.pushSeq(); return t; },
+  update(id,patch){ const t=this.data.tx.find(x=>x.id===id); if(t){Object.assign(t,patch);this.save();CloudSync.pushTx(t);} return t; },
+  remove(id){ this.data.tx=this.data.tx.filter(x=>x.id!==id); this.save(); CloudSync.deleteTx(id); },
   addRule(r){ this.data.rules=this.data.rules.filter(x=>x.match!==r.match); this.data.rules.push(r); this.save(); },
   rules(){ return this.data.rules; },
   saveRef(){ this.data.ref = REF; this.save(); }
 };
 /* Pour migrer vers Supabase: réimplémenter add/update/remove/all en appels async
    vers supabase.from('tx'), garder la même signature. Le reste du code ne change pas. */
+
+/* ============ SYNCHRO CLOUD — ÉCRITURE (0.5.0) ============
+   Stratégie "local d'abord" : le Store écrit en local immédiatement (synchrone,
+   aucun await ailleurs dans le code), puis on pousse vers Supabase en arrière-plan.
+   En cas d'échec réseau, l'opération reste en file et est retentée. */
+
+const CloudSync = {
+  queue: [],          // éléments: {kind:'upsert'|'delete', id, tx?}
+  pending: 0,
+  failed: 0,
+  running: false,
+
+  // Mappe une opération interne -> ligne Supabase (colonnes réelles de la table)
+  txToRow(t){
+    return {
+      legacy_id: t.id,
+      account: t.account || 'CC',
+      typeflux: t.typeflux || '',
+      cat1: t.cat1 || '', cat2: t.cat2 || '', cat3: t.cat3 || '',
+      compte: t.compte || '',
+      season: t.season || '',
+      nature: t.nature || '',
+      libelle: t.libelle || '',
+      op_date: (t.date && String(t.date).trim()) ? t.date : null,
+      debit: Number(t.debit || 0),
+      credit: Number(t.credit || 0),
+      adherent: t.adherent || '',
+      justif: t.justif || '',
+      comment: t.comment || '',
+      lettrage: t.lettrage || '',
+      pointage: t.pointage || '',
+      orig_status: t.origStatus || '',
+      is_prev: !!t.isPrev,
+      status: t.status || ''
+    };
+  },
+
+  enqueue(item){
+    if(!sb) return;                       // hors-ligne total : on ne tente rien
+    if(Store.data._fromCloud!==true) return; // sécurité : ne pousse que si on lit le cloud
+    this.queue.push(item);
+    this.pending=this.queue.length;
+    this.updateBadge();
+    this.run();
+  },
+
+  pushTx(t){ this.enqueue({kind:'upsert', id:t.id, row:this.txToRow(t)}); },
+  deleteTx(id){ this.enqueue({kind:'delete', id}); },
+
+  // Réglages (seq, realBalances, defaultSeason) -> table settings
+  pushSetting(key, value){
+    if(!sb) return;
+    if(Store.data._fromCloud!==true) return;
+    this.queue.push({kind:'setting', key, value});
+    this.pending=this.queue.length;
+    this.updateBadge();
+    this.run();
+  },
+  pushSeq(){ this.pushSetting('seq', Store.data.seq); },
+  pushBalances(){ this.pushSetting('realBalances', Store.data.realBalances||{}); },
+
+  async run(){
+    if(this.running || !sb) return;
+    this.running=true;
+    while(this.queue.length){
+      const item=this.queue[0];
+      try{
+        if(item.kind==='upsert'){
+          const { error } = await sb.from('operations')
+            .upsert(item.row, { onConflict:'legacy_id' });
+          if(error) throw error;
+        } else if(item.kind==='delete'){
+          const { error } = await sb.from('operations')
+            .delete().eq('legacy_id', item.id);
+          if(error) throw error;
+        } else if(item.kind==='setting'){
+          const { error } = await sb.from('settings')
+            .upsert({ key:item.key, value:item.value, updated_at:new Date().toISOString() }, { onConflict:'key' });
+          if(error) throw error;
+        }
+        this.queue.shift();               // succès : on retire de la file
+        this.failed=0;
+        this.pending=this.queue.length;
+        this.updateBadge();
+      }catch(e){
+        // Échec (réseau ?) : on s'arrête, on retentera au prochain déclenchement
+        console.warn('Sync cloud échec, en attente de retry', e);
+        this.failed=this.queue.length;
+        this.running=false;
+        this.updateBadge();
+        setTimeout(()=>this.run(), 8000); // retry automatique dans 8s
+        return;
+      }
+    }
+    this.running=false;
+    this.updateBadge();
+  },
+
+  updateBadge(){
+    const el=document.getElementById('syncBadge');
+    if(!el) return;
+    if(this.queue.length===0){ el.textContent='☁︎ Synchronisé'; el.className='sync-ok'; }
+    else if(this.failed>0){ el.textContent='⚠︎ '+this.queue.length+' en attente'; el.className='sync-warn'; }
+    else { el.textContent='⟳ Envoi… ('+this.queue.length+')'; el.className='sync-busy'; }
+  }
+};
 
 /* ============ SUPABASE — AUTHENTIFICATION (0.3.1) ============ */
 const SB_URL = 'https://jwwxcdkmlpewbnnstyrc.supabase.co';
@@ -507,7 +620,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.4.0',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
+const APP_META={name:'Scuborga',version:'0.5.0',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -1698,11 +1811,11 @@ function paramOpen(k){
 
 function paramAbout(){
   $('#paramSubBody').innerHTML=`<h2 style="font-size:16px">À propos de ${APP_META.name}</h2>
-    <p class="note">Application de gestion financière pour association de plongée. Connexion sécurisée active. Au démarrage, les données sont chargées depuis le cloud (lecture). L'écriture directe vers le cloud sera activée dans la prochaine version.</p>
+    <p class="note">Application de gestion financière pour association de plongée. Connexion sécurisée active. Les données sont lues depuis le cloud au démarrage, et tes saisies y sont renvoyées automatiquement en arrière-plan. L'indicateur de synchronisation en haut à droite montre l'état (synchronisé / envoi / en attente).</p>
     <div class="about-grid">
       <div class="about-k"><div class="lab">Application</div><div class="v">${APP_META.name}</div></div>
       <div class="about-k"><div class="lab">Version</div><div class="v">${APP_META.channel} ${APP_META.version}</div></div>
-      <div class="about-k"><div class="lab">Lecture</div><div class="v">Cloud au démarrage</div></div>
+      <div class="about-k"><div class="lab">Synchro</div><div class="v">Lecture + écriture cloud</div></div>
       <div class="about-k"><div class="lab">Sauvegarde</div><div class="v">Cloud sécurisé (Supabase)</div></div>
     </div>
     <div class="card" style="margin-top:14px">
@@ -1713,7 +1826,7 @@ function paramAbout(){
     </div>
     <div class="card" style="margin-top:14px">
       <h2>Limites bêta</h2>
-      <p class="note">Les données affichées proviennent du cloud au démarrage. En revanche, les saisies et modifications faites dans l'appli restent encore locales (l'écriture cloud arrive à la prochaine version) : elles ne sont pas encore renvoyées au serveur. Continue d'exporter régulièrement via Paramètres → Import / sauvegarde.</p>
+      <p class="note">Tes opérations sont envoyées au cloud en arrière-plan : l'appli reste instantanée même en réseau lent. Si une connexion manque, les envois sont mis en file et retentés automatiquement (l'indicateur passe en « en attente »). Les tables de classification et règles ne sont pas encore renvoyées au cloud quand tu les modifies — c'est pour une version ultérieure. Continue d'exporter de temps en temps via Paramètres → Import / sauvegarde.</p>
     </div>`;
 }
 
@@ -1878,7 +1991,7 @@ function paramSoldes(){
 }
 function setRealBal(k,v){ Store.data.realBalances=Store.data.realBalances||{};
   Store.data.realBalances[k]=parseFloat(v); if(isNaN(Store.data.realBalances[k]))delete Store.data.realBalances[k];
-  Store.save(); toast('Solde enregistré'); if(document.querySelector('#v-dash.active'))renderDash(); }
+  Store.save(); CloudSync.pushBalances(); toast('Solde enregistré'); if(document.querySelector('#v-dash.active'))renderDash(); }
 
 /* --- Import / Export --- */
 function paramIO(){
