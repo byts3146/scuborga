@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Scuborga · bêta 0.8.0</title>
+<title>Scuborga · bêta 0.8.1</title>
 <style>
 :root{
   --bg:#0f1419; --surface:#1a2230; --surface2:#222d3d; --line:#2d3a4d;
@@ -268,7 +268,7 @@ tr.tblsel td{background:rgba(74,158,255,.10)}
         <h1 id="hTitle">Tableau de bord</h1>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-        <span class="version-badge" id="appVersion">bêta 0.8.0</span>
+        <span class="version-badge" id="appVersion">bêta 0.8.1</span>
         <span id="syncBadge" class="sync-ok">☁︎ Synchronisé</span>
       </div>
     </div>
@@ -666,7 +666,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.8.0',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
+const APP_META={name:'Scuborga',version:'0.8.1',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -918,7 +918,7 @@ function suggest(t){
 let editId=null;
 let newKind='PREV';
 let _txPreset=null;
-function saveTxAndNew(){ _saveAndNew=true; saveTx(); }
+function saveTxAndNew(){ saveTx(true); }
 function openTx(id,kind){
   editId=id; newKind = kind || 'PREV';
   const isFut = newKind==='PREV';
@@ -1103,8 +1103,8 @@ function applySug(match){
   applyCombo(r.typeflux,r.cat1,r.cat2,r.cat3||'');
   toast('Suggestion appliquée');
 }
-function saveTx(){
-  _saveAndNew=false;
+function saveTx(andNew){
+  _saveAndNew = !!andNew;
   const g=s=>$(s).value;
   const amt=readAmount();
   const patch={
