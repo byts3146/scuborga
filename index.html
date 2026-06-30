@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Scuborga · bêta 0.7.0</title>
+<title>Scuborga · bêta 0.8.0</title>
 <style>
 :root{
   --bg:#0f1419; --surface:#1a2230; --surface2:#222d3d; --line:#2d3a4d;
@@ -216,6 +216,13 @@ tr.tblsel td{background:rgba(74,158,255,.10)}
 .filter-chip button{font-size:12px;color:var(--accent);padding:0 0 0 2px}
 .ops-summary{font-size:12px;color:var(--muted);font-weight:600;margin:2px 0 8px}
 .adv-toggle{width:100%;text-align:left;background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;font-weight:700;color:var(--muted);margin:2px 0 12px}
+.amount-row{display:flex;gap:8px;align-items:stretch}
+.sign-btn{flex:0 0 52px;border-radius:10px;border:1px solid var(--line);font-size:24px;font-weight:800;cursor:pointer;transition:all .12s}
+.sign-btn.minus{background:rgba(248,81,73,.12);border-color:rgba(248,81,73,.4);color:var(--red)}
+.sign-btn.plus{background:rgba(63,185,80,.12);border-color:rgba(63,185,80,.4);color:var(--green)}
+.amount-hint{font-size:12px;font-weight:600;margin-top:5px}
+.amount-hint.minus{color:var(--red)}
+.amount-hint.plus{color:var(--green)}
 .adv-area{display:none}.adv-area.open{display:block}
 .backup-input{display:none}
 @media (max-width:420px){.action-grid{grid-template-columns:1fr}.action-card{min-height:auto}}
@@ -261,7 +268,7 @@ tr.tblsel td{background:rgba(74,158,255,.10)}
         <h1 id="hTitle">Tableau de bord</h1>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-        <span class="version-badge" id="appVersion">bêta 0.7.0</span>
+        <span class="version-badge" id="appVersion">bêta 0.8.0</span>
         <span id="syncBadge" class="sync-ok">☁︎ Synchronisé</span>
       </div>
     </div>
@@ -659,7 +666,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.7.0',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
+const APP_META={name:'Scuborga',version:'0.8.0',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -910,12 +917,14 @@ function suggest(t){
 /* ============ EDIT / CLASSIFY SHEET ============ */
 let editId=null;
 let newKind='PREV';
+let _txPreset=null;
+function saveTxAndNew(){ _saveAndNew=true; saveTx(); }
 function openTx(id,kind){
   editId=id; newKind = kind || 'PREV';
   const isFut = newKind==='PREV';
-  const t = id ? Store.all().find(x=>x.id===id) : {typeflux:'',cat1:'',cat2:'',cat3:'',compte:'',
+  const t = id ? Store.all().find(x=>x.id===id) : (_txPreset || {typeflux:'',cat1:'',cat2:'',cat3:'',compte:'',
      nature:'',libelle:'',date:new Date().toISOString().slice(0,10),debit:0,credit:0,
-     season:curSeason(),adherent:'',justif:'',comment:'',isPrev:isFut,origStatus:isFut?'ATT':''};
+     season:curSeason(),adherent:'',justif:'',comment:'',isPrev:isFut,origStatus:isFut?'ATT':''});
   const isNew=!id;
   const sug = id && !isClassified(t) ? suggest(t) : null;
   const sheet=$('#sheet');
@@ -935,9 +944,12 @@ function openTx(id,kind){
     <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin:-4px 0 12px;font-weight:600">
       <input type="checkbox" id="fFuture" style="width:auto" ${(isNew?isFut:isFuture(t))?'checked':''}>
       Opération future / en attente (non encore passée en banque)</label>
-    <div class="row">
-      <div class="field"><label>Débit (-)</label><input id="fDeb" type="number" step="0.01" value="${t.debit||''}"></div>
-      <div class="field"><label>Crédit (+)</label><input id="fCred" type="number" step="0.01" value="${t.credit||''}"></div>
+    <div class="field"><label>Montant</label>
+      <div class="amount-row">
+        <button type="button" id="fSign" class="sign-btn" onclick="toggleSign()">−</button>
+        <input id="fAmount" type="number" step="0.01" inputmode="decimal" placeholder="0.00" style="flex:1">
+      </div>
+      <div id="amountHint" class="amount-hint">Sortie (débit)</div>
     </div>
     <hr style="border:none;border-top:1px solid var(--line);margin:6px 0 14px">
     <div class="field"><label>Type de flux</label>
@@ -965,16 +977,74 @@ function openTx(id,kind){
         <input type="checkbox" id="fRule" style="width:auto" checked> Mémoriser une règle d'auto-classement pour ce libellé</label>
     </div>
     <button class="btn" onclick="saveTx()">${isNew?'Ajouter le flux':'Enregistrer'}</button>
+    ${isNew?`<button class="btn ghost" style="margin-top:10px" onclick="saveTxAndNew()">Ajouter et saisir le suivant</button>`:''}
     ${id?`<button class="btn ghost" style="margin-top:10px" onclick="delTx('${id}')"><span class="del">Supprimer</span></button>`:''}`;
 
   // initialiser les combobox
   setupComboboxes(t);
   setupLibelleAssist();
+  // initialiser le champ Montant unique (signe selon débit/crédit existant)
+  initAmountField(t);
+  setupFormKeyboard();
   // si l'adhérent actuel correspond au libellé, on le considère auto-rempli (modifiable au renommage)
   maybeAutofillAdh._last = (t.adherent && matchAdherent(t.libelle)===t.adherent) ? t.adherent : null;
   openSheet();
 }
 function natureLabel(n){ return n? (REF.natureLabels[n]||n) : ''; }
+
+// --- Champ Montant unique avec signe (0.8.0) ---
+// Convention : signe − = débit (sortie), + = crédit (entrée).
+let _amountSign = -1;
+let _saveAndNew = false;
+function initAmountField(t){
+  const cred=Number(t.credit||0), deb=Number(t.debit||0);
+  let val='', sign=-1;
+  if(cred>0){ sign=1; val=cred; }
+  else if(deb>0){ sign=-1; val=deb; }
+  else {
+    sign = (t.typeflux==='PRODUITS') ? 1 : -1;
+    val='';
+  }
+  _amountSign=sign;
+  const inp=$('#fAmount'); if(inp) inp.value = (val===''?'':Math.abs(val));
+  updateSignUI();
+}
+function toggleSign(){ _amountSign = -_amountSign; updateSignUI();
+  if(setupLibelleAssist._refreshLabel) setupLibelleAssist._refreshLabel();
+  maybeAutofillAdh();
+}
+function updateSignUI(){
+  const btn=$('#fSign'), hint=$('#amountHint');
+  if(!btn) return;
+  if(_amountSign>0){ btn.textContent='+'; btn.className='sign-btn plus'; if(hint){hint.textContent='Entrée (crédit)'; hint.className='amount-hint plus';} }
+  else { btn.textContent='−'; btn.className='sign-btn minus'; if(hint){hint.textContent='Sortie (débit)'; hint.className='amount-hint minus';} }
+}
+function readAmount(){
+  const raw=parseFloat($('#fAmount') ? $('#fAmount').value : '')||0;
+  const v=Math.abs(raw);
+  return _amountSign>0 ? {debit:0, credit:v} : {debit:v, credit:0};
+}
+
+// --- Navigation clavier dans le formulaire (0.8.0) ---
+function setupFormKeyboard(){
+  const sheet=$('#sheet'); if(!sheet) return;
+  sheet.onkeydown=(e)=>{
+    if(e.key==='Escape'){ e.preventDefault(); closeSheet(); return; }
+    if(e.key==='Enter'){
+      const openDrop=e.target.parentElement && e.target.parentElement.querySelector && e.target.parentElement.querySelector('.combodrop.open');
+      if(openDrop){ return; }
+      e.preventDefault();
+      const focusables=[...sheet.querySelectorAll('input:not([readonly]):not([type=checkbox])')];
+      const i=focusables.indexOf(e.target);
+      if(i>-1 && i<focusables.length-1){
+        focusables[i+1].focus();
+      } else {
+        saveTx();
+      }
+    }
+  };
+}
+
 function natureFromLabel(v){
   v=(v||'').trim(); if(!v) return '';
   for(const n of REF.natures){ if(n===v || REF.natureLabels[n]===v) return n; }
@@ -1034,10 +1104,12 @@ function applySug(match){
   toast('Suggestion appliquée');
 }
 function saveTx(){
+  _saveAndNew=false;
   const g=s=>$(s).value;
+  const amt=readAmount();
   const patch={
     libelle:g('#fLib'), date:g('#fDate'), nature:natureFromLabel(g('#fNat')),
-    debit:parseFloat(g('#fDeb'))||0, credit:parseFloat(g('#fCred'))||0,
+    debit:amt.debit, credit:amt.credit,
     typeflux:g('#fType').toUpperCase().trim(), cat1:g('#fCat1').toUpperCase().trim(),
     cat2:g('#fCat2').toUpperCase().trim(), cat3:g('#fCat3').trim(),
     compte:g('#fCompte'), season:g('#fSeason').trim(), adherent:g('#fAdh').trim(),
@@ -1061,9 +1133,34 @@ function commitTx(patch){
     const m=ruleKey(patch.libelle);
     Store.addRule({match:m,typeflux:patch.typeflux,cat1:patch.cat1,cat2:patch.cat2,cat3:patch.cat3});
   }
+  // Saisie en série : on rouvre un formulaire pré-rempli (date/saison/catégories/type/nature)
+  // en vidant libellé, montant et adhérent — sans fermer la feuille.
+  if(_saveAndNew && !editId){
+    _saveAndNew=false;
+    toast('Ajouté ✓ — saisie suivante');
+    const seed={
+      typeflux:patch.typeflux, cat1:patch.cat1, cat2:patch.cat2, cat3:patch.cat3,
+      compte:patch.compte, nature:patch.nature, season:patch.season,
+      date:patch.date, isPrev:patch.isPrev, origStatus:patch.isPrev?'ATT':'',
+      libelle:'', debit:0, credit:0, adherent:'', justif:'', comment:''
+    };
+    reopenTxWith(seed);
+    return;
+  }
   closeSheet(); toast(editId?'Enregistré ✓':'Ajouté au brouillon');
   const active=document.querySelector('.view.active').id.replace('v-','');
   go(editId? (active==='import'?'dash':active) : 'classer');
+}
+
+// Rouvre le formulaire de saisie pré-rempli à partir d'un objet (pour la saisie en série)
+function reopenTxWith(seed){
+  editId=null; newKind = seed.isPrev?'PREV':'REAL';
+  const t=Object.assign({typeflux:'',cat1:'',cat2:'',cat3:'',compte:'',nature:'',libelle:'',
+    date:new Date().toISOString().slice(0,10),debit:0,credit:0,season:curSeason(),
+    adherent:'',justif:'',comment:'',isPrev:false,origStatus:''}, seed);
+  // On réutilise openTx mais en injectant les valeurs : le plus simple est de stocker un "préréglage"
+  _txPreset=t; openTx(null, t.isPrev?'PREV':'REAL'); _txPreset=null;
+  setTimeout(()=>{ const l=$('#fLib'); if(l) l.focus(); }, 60);
 }
 
 // Détecte les valeurs saisies absentes des tables
@@ -1123,23 +1220,27 @@ function applyCombo(tf,c1,c2,c3){
   // recalc compte
   const key=tf+'||'+c1+'||'+c2;
   $('#fCompte').value=REF.compte[key]||'';
+  // aligner le signe du montant sur le type de flux (PRODUITS=+, CHARGES=−)
+  if(tf==='PRODUITS' && _amountSign<0){ _amountSign=1; updateSignUI(); }
+  else if(tf==='CHARGES' && _amountSign>0){ _amountSign=-1; updateSignUI(); }
   maybeAutofillAdh();
+  if(setupLibelleAssist._refreshLabel) setupLibelleAssist._refreshLabel();
   toast('Champs pré-remplis');
 }
 function setupLibelleAssist(){
-  const lib=$('#fLib'), deb=$('#fDeb'), cred=$('#fCred'), lab=$('#fLibLabel');
-  // noms déjà vus (débiteurs/créditeurs) + adhérents, pour suggestion custom
+  const lib=$('#fLib'), amount=$('#fAmount'), lab=$('#fLibLabel');
   const seen=new Set();
   Store.all().forEach(t=>{ if(t.libelle) seen.add(t.libelle.trim()); });
   REF.adherents.forEach(a=>seen.add(a));
   setupLibelleAssist._names=[...seen].sort((a,b)=>a.localeCompare(b,'fr'));
   function refreshLabel(){
-    const isDebit=(parseFloat(deb.value)||0)>0 && !(parseFloat(cred.value)||0);
-    const isCredit=(parseFloat(cred.value)||0)>0;
+    const hasAmount=(parseFloat(amount&&amount.value)||0)>0;
+    const isCredit=hasAmount && _amountSign>0;
+    const isDebit=hasAmount && _amountSign<0;
     lab.textContent = isDebit ? 'Débiteur (qui paie)' : isCredit ? 'Créditeur (adhérent par défaut)' : 'Libellé (débiteur / créditeur)';
   }
-  deb.addEventListener('input',refreshLabel);
-  cred.addEventListener('input',()=>{ refreshLabel(); maybeAutofillAdh(); });
+  setupLibelleAssist._refreshLabel=refreshLabel;
+  if(amount){ amount.addEventListener('input',()=>{ refreshLabel(); maybeAutofillAdh(); }); }
   lib.addEventListener('input',()=>{ showNameSug(); onLibInput(); });
   lib.addEventListener('blur',()=>{ setTimeout(()=>{ const b=$('#libNames'); if(b)b.innerHTML=''; },150); });
   refreshLabel();
@@ -1191,7 +1292,7 @@ function onLibInput(){
 function maybeAutofillAdh(){
   const adhF=$('#fAdh'); if(!adhF) return;
   const lib=$('#fLib').value.trim();
-  const cred=(parseFloat($('#fCred').value)||0)>0;
+  const cred=(parseFloat($('#fAmount') && $('#fAmount').value)||0)>0 && _amountSign>0;
   const c2=($('#fCat2').value||'').toUpperCase();
   const isAdhDebit=/LICENCE|ASSURANCE|FORMATION/.test(c2);
   if(!(cred || isAdhDebit)) return;
