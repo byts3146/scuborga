@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Scuborga · bêta 0.8.1</title>
+<title>Scuborga · bêta 0.8.2</title>
 <style>
 :root{
   --bg:#0f1419; --surface:#1a2230; --surface2:#222d3d; --line:#2d3a4d;
@@ -128,6 +128,7 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 .grp .body{border:1px solid var(--line);border-top:none;border-radius:0 0 11px 11px;
   padding:4px 13px 10px;background:var(--surface)}
 .tag{font-size:11px;color:var(--muted);font-weight:600}
+.tag.adh{color:var(--accent);background:rgba(74,158,255,.10);border:1px solid rgba(74,158,255,.25);border-radius:6px;padding:1px 6px}
 /* Reporting adhérent — détail */
 .adh-detail{padding-top:10px}
 .adh-recap{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px}
@@ -268,7 +269,7 @@ tr.tblsel td{background:rgba(74,158,255,.10)}
         <h1 id="hTitle">Tableau de bord</h1>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-        <span class="version-badge" id="appVersion">bêta 0.8.1</span>
+        <span class="version-badge" id="appVersion">bêta 0.8.2</span>
         <span id="syncBadge" class="sync-ok">☁︎ Synchronisé</span>
       </div>
     </div>
@@ -666,7 +667,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.8.1',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
+const APP_META={name:'Scuborga',version:'0.8.2',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -797,6 +798,7 @@ function txRow(t,opts){
       <div class="lib">${esc(t.libelle||'(sans libellé)')}</div>
       <div class="meta">
         ${pillCat(t)}
+        ${t.adherent && norm(t.adherent)!==norm(t.libelle||'') ? `<span class="tag adh">👤 ${esc(t.adherent)}</span>` : ''}
         ${t.nature?`<span class="tag">${t.nature}</span>`:''}
         ${t.date?`<span>${fmtDateY(t.date)}</span>`:''}
         ${prev?'<span class="pill prev">prévu</span>':''}
@@ -1031,16 +1033,18 @@ function setupFormKeyboard(){
   sheet.onkeydown=(e)=>{
     if(e.key==='Escape'){ e.preventDefault(); closeSheet(); return; }
     if(e.key==='Enter'){
+      // Combobox ouvert : laisser la sélection se faire
       const openDrop=e.target.parentElement && e.target.parentElement.querySelector && e.target.parentElement.querySelector('.combodrop.open');
       if(openDrop){ return; }
-      e.preventDefault();
+      // On passe au champ suivant si possible, mais on n'enregistre JAMAIS automatiquement
+      // (sur mobile, la touche Entrée/OK du clavier ne doit pas valider l'opération).
       const focusables=[...sheet.querySelectorAll('input:not([readonly]):not([type=checkbox])')];
       const i=focusables.indexOf(e.target);
       if(i>-1 && i<focusables.length-1){
+        e.preventDefault();
         focusables[i+1].focus();
-      } else {
-        saveTx();
       }
+      // sinon : on ne fait rien (pas de saveTx automatique)
     }
   };
 }
@@ -1158,9 +1162,9 @@ function reopenTxWith(seed){
   const t=Object.assign({typeflux:'',cat1:'',cat2:'',cat3:'',compte:'',nature:'',libelle:'',
     date:new Date().toISOString().slice(0,10),debit:0,credit:0,season:curSeason(),
     adherent:'',justif:'',comment:'',isPrev:false,origStatus:''}, seed);
-  // On réutilise openTx mais en injectant les valeurs : le plus simple est de stocker un "préréglage"
   _txPreset=t; openTx(null, t.isPrev?'PREV':'REAL'); _txPreset=null;
-  setTimeout(()=>{ const l=$('#fLib'); if(l) l.focus(); }, 60);
+  // la feuille reste ouverte ; on ne force pas le focus (sur mobile, ouvrir le clavier
+  // automatiquement peut être déroutant — l'utilisateur tape le libellé quand il veut).
 }
 
 // Détecte les valeurs saisies absentes des tables
