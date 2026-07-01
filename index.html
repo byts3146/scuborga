@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Scuborga · bêta 0.8.2</title>
+<title>Scuborga · bêta 0.8.3</title>
 <style>
 :root{
   --bg:#0f1419; --surface:#1a2230; --surface2:#222d3d; --line:#2d3a4d;
@@ -269,7 +269,7 @@ tr.tblsel td{background:rgba(74,158,255,.10)}
         <h1 id="hTitle">Tableau de bord</h1>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-        <span class="version-badge" id="appVersion">bêta 0.8.2</span>
+        <span class="version-badge" id="appVersion">bêta 0.8.3</span>
         <span id="syncBadge" class="sync-ok">☁︎ Synchronisé</span>
       </div>
     </div>
@@ -667,7 +667,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.8.2',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
+const APP_META={name:'Scuborga',version:'0.8.3',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -705,6 +705,19 @@ function go(v){
   if(v==='report')renderReport();
   if(v==='controls')renderControls();
   if(v==='param'){ paramView=null; tableSheet=null; renderParam(); }
+}
+
+// Redessine la vue actuellement affichée (sans changer de page).
+// Utile après une écriture pour que la liste se mette à jour immédiatement.
+function refreshCurrent(){
+  const act=document.querySelector('.view.active');
+  if(!act) return;
+  const v=act.id.replace('v-','');
+  if(v==='dash')renderDash();
+  else if(v==='classer')renderClasser();
+  else if(v==='ops')renderOps();
+  else if(v==='report')renderReport();
+  else if(v==='controls')renderControls();
 }
 
 /* ============ DASHBOARD ============ */
@@ -1149,6 +1162,7 @@ function commitTx(patch){
       libelle:'', debit:0, credit:0, adherent:'', justif:'', comment:''
     };
     reopenTxWith(seed);
+    refreshCurrent();   // met à jour la liste en arrière-plan (ex: "À classer") sans fermer la feuille
     return;
   }
   closeSheet(); toast(editId?'Enregistré ✓':'Ajouté au brouillon');
