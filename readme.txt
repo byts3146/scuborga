@@ -9,6 +9,19 @@ documenté de façon systématique (messages de commit génériques type
 modification à partir de la v0.8.4.
 
 
+v0.8.8 — 04/07/2026
+--------------------
+Bouton de fermeture sur tous les panneaux de saisie.
+Ajoute un bouton ✕ visible (cercle en haut à droite) sur tous les
+panneaux type "sheet" — nouvelle opération, édition, édition
+multiple, filtres, modales de confirmation. Jusqu'ici la seule façon
+de quitter était de taper en dehors du panneau ou de glisser vers le
+bas, peu évident sur mobile, en particulier pour annuler une saisie
+de nouvelle opération en cours. Fermeture = comportement identique
+au tap en dehors du panneau (rien n'est enregistré).
+Pour mémoire, la navigation retour au sein de Paramètres (liste →
+détail) disposait déjà d'un bouton "‹ Retour aux réglages".
+
 v0.8.7 — 04/07/2026
 --------------------
 Correction : compte bancaire (CC/EP) enfin sélectionnable.
