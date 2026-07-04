@@ -69,6 +69,12 @@ const CloudSync = {
     toast('⚠ Conflit de synchro sur '+id);
     console.warn('Conflit CloudSync', id, reason);
   },
+  // Retire un conflit résolu (quelle que soit l'action choisie par l'utilisateur).
+  clearConflict(id){
+    this.conflicts=this.conflicts.filter(c=>c.id!==id);
+    this.persistConflicts();
+    this.updateBadge();
+  },
 
   // Mappe une opération interne -> ligne Supabase (colonnes réelles de la table)
   txToRow(t){
@@ -1569,6 +1575,7 @@ const PARAM_MENU=[
   ['soldes','Soldes des comptes','Solde réel de chaque compte bancaire'],
   ['io','Import / sauvegarde','CSV bancaire, export et restauration JSON'],
   ['controls','Contrôles','Incohérences, doublons, champs manquants'],
+  ['sync','Synchro & conflits','File d\u2019attente et conflits de synchronisation cloud'],
   ['about','À propos','Version, statut bêta et limites connues']
 ];
 let paramView=null;
@@ -1578,7 +1585,7 @@ function paramHome(){
   $('#paramHome').style.display='block'; $('#paramSub').style.display='none';
   $('#paramHome').innerHTML=PARAM_MENU.map(([k,t,d])=>`
     <div class="card" style="cursor:pointer;display:flex;align-items:center;gap:12px" onclick="paramOpen('${k}')">
-      <div style="flex:1"><div style="font-weight:600;font-size:15px">${t}</div>
+      <div style="flex:1"><div style="font-weight:600;font-size:15px">${t}${k==='sync'&&CloudSync.conflicts.length?` <span class="tag" style="background:var(--red,#e5484d);color:#fff">${CloudSync.conflicts.length}</span>`:''}</div>
         <div class="tag" style="margin-top:2px">${d}</div></div>
       <span style="color:var(--muted);font-size:20px">›</span></div>`).join('')
     + `<div class="card" id="accountCard" style="margin-top:16px">
@@ -1597,7 +1604,86 @@ function paramOpen(k){
   else if(k==='soldes')paramSoldes();
   else if(k==='io')paramIO();
   else if(k==='controls'){ go('controls'); return; }
+  else if(k==='sync')paramSync();
   else if(k==='about')paramAbout();
+}
+
+// Libellé lisible d'une opération pour l'affichage dans l'écran de conflits.
+function txLabel(t){
+  if(!t) return '(opération introuvable localement)';
+  const d=fmtDateFull(t.date)||'—';
+  const lib=t.libelle||t.adherent||'(sans libellé)';
+  return `${d} · ${lib} · ${eur(amt(t))}`;
+}
+
+function paramSync(){
+  const q=CloudSync.queue.length, c=CloudSync.conflicts;
+  $('#paramSubBody').innerHTML=`<h2 style="font-size:16px">Synchro & conflits</h2>
+    <div class="card">
+      <div class="about-grid">
+        <div class="about-k"><div class="lab">En attente d'envoi</div><div class="v">${q}</div></div>
+        <div class="about-k"><div class="lab">Conflits non résolus</div><div class="v">${c.length}</div></div>
+      </div>
+      <p class="note" style="margin-top:8px">Un conflit apparaît quand une opération modifiée sur cet appareil a été modifiée ou supprimée ailleurs (autre appareil/utilisateur) avant l'envoi. Rien n'est jamais écrasé automatiquement dans ce cas.</p>
+    </div>
+    ${c.length===0?'<p class="note" style="margin-top:14px">Aucun conflit en attente. 👍</p>':
+      c.map(cf=>{
+        const t=Store.data.tx.find(x=>x.id===cf.id);
+        return `<div class="card" style="margin-top:12px">
+          <div style="font-weight:600;font-size:14px">${txLabel(t)}</div>
+          <div class="tag" style="margin-top:4px">${cf.reason} — détecté le ${fmtDateFull(cf.when.slice(0,10))}</div>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+            <button class="btn" onclick="conflictReload('${cf.id}')">Reprendre la version cloud</button>
+            <button class="btn ghost" onclick="conflictForce('${cf.id}')">Garder ma version locale</button>
+            <button class="btn ghost" onclick="conflictDismiss('${cf.id}')">Ignorer</button>
+          </div>
+        </div>`;
+      }).join('')}`;
+}
+
+// "Reprendre la version cloud" : écrase la version locale par celle du serveur.
+async function conflictReload(id){
+  if(!sb){ toast('Connexion cloud indisponible'); return; }
+  try{
+    const { data, error } = await sb.from('operations').select('*').eq('legacy_id', id).maybeSingle();
+    if(error) throw error;
+    if(!data){
+      // La ligne n'existe plus côté cloud : on retire aussi la version locale.
+      Store.data.tx = Store.data.tx.filter(x=>x.id!==id);
+      toast('Opération supprimée côté cloud — retirée localement');
+    } else {
+      const fresh = cloudRowToTx(data);
+      const idx = Store.data.tx.findIndex(x=>x.id===id);
+      if(idx>=0) Store.data.tx[idx]=fresh; else Store.data.tx.push(fresh);
+      toast('Version cloud reprise');
+    }
+    Store.save();
+    CloudSync.clearConflict(id);
+    paramSync();
+    refreshCurrent();
+  }catch(e){
+    toast('Échec du rechargement : '+(e.message||e));
+  }
+}
+
+// "Garder ma version locale" : renvoie la version locale en écrasant le cloud,
+// en ignorant délibérément la vérification de conflit cette fois.
+function conflictForce(id){
+  const t=Store.data.tx.find(x=>x.id===id);
+  if(!t){ toast('Opération introuvable localement'); CloudSync.clearConflict(id); paramSync(); return; }
+  t._cloudUpdatedAt=null; // baseline nulle = pas de re-vérification, upsert direct
+  Store.save();
+  CloudSync.clearConflict(id);
+  CloudSync.pushTx(t);
+  toast('Version locale renvoyée au cloud');
+  paramSync();
+}
+
+// "Ignorer" : referme juste l'alerte sans rien renvoyer ni recharger.
+function conflictDismiss(id){
+  CloudSync.clearConflict(id);
+  toast('Conflit ignoré');
+  paramSync();
 }
 
 function paramAbout(){
