@@ -21,6 +21,19 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.9.2 — 04/07/2026
+--------------------
+Simplification de la zone de filtre (Opérations).
+Avant : 6 rangées successives avant même de voir une opération.
+Simplifié à 4 :
+- Suppression de la ligne de puces "filtres actifs", redondante avec
+  l'état déjà visible sur les boutons surlignés (comptes, filtres
+  rapides) et le compteur du bouton "Filtres".
+- Fusion de la ligne résumé avec la ligne des boutons Filtres/
+  Réinitialiser.
+- Le bouton "Réinitialiser" ne s'affiche plus que si un filtre est
+  réellement actif.
+
 v0.9.1 — 04/07/2026
 --------------------
 Éclaircissement des pastilles de catégorie.
