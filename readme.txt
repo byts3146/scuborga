@@ -21,6 +21,18 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.9.3 — 04/07/2026
+--------------------
+Retrait des filtres rapides (Ce mois-ci, Cette saison...).
+Supprime la barre de filtres rapides de la vue Opérations, pour
+simplifier davantage la zone de filtre.
+- "À classer" reste couvert par son propre onglet dédié — aucune perte
+- "Sans justificatif" reste visible dans Contrôles — aucune perte
+- "Non pointées" filtrait sur un champ (pointage) qui n'a en réalité
+  aucune interface pour être renseigné nulle part dans l'appli —
+  perte fonctionnelle minime (donnée historique figée, pas un
+  workflow actif)
+
 v0.9.2 — 04/07/2026
 --------------------
 Simplification de la zone de filtre (Opérations).
