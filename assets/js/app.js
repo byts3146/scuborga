@@ -306,7 +306,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.9.4',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
+const APP_META={name:'Scuborga',version:'0.9.5',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -1144,10 +1144,9 @@ function renderOps(){
 function renderAcctChips(){
   const accs=[...new Set(Store.all().map(t=>t.account||'CC'))];
   const bar=$('#acctChips');
-  bar.innerHTML=`<button class="${!opsAccount?'on':''}" onclick="setOpsAccount(null)">Tous comptes</button>`+
-    accs.map(a=>`<button class="${opsAccount===a?'on':''}" onclick="setOpsAccount('${a}')">${ACCOUNTS[a]||a}</button>`).join('');
+  bar.innerHTML=accs.map(a=>`<button class="${opsAccount===a?'on':''}" onclick="setOpsAccount('${a}')">${a}</button>`).join('');
 }
-function setOpsAccount(a){ opsAccount=a; renderOps(); }
+function setOpsAccount(a){ opsAccount = (opsAccount===a) ? null : a; renderOps(); }
 function clearFilters(){ opsFilters={}; opsAccount=null; $('#opsSearch').value=''; renderOps(); }
 
 /* Drag & drop pour réordonner manuellement */
