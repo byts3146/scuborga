@@ -269,7 +269,7 @@ tr.tblsel td{background:rgba(74,158,255,.10)}
         <h1 id="hTitle">Tableau de bord</h1>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-        <span class="version-badge" id="appVersion">bêta 0.8.3</span>
+        <span class="version-badge" id="appVersion">bêta 0.8.4</span>
         <span id="syncBadge" class="sync-ok">☁︎ Synchronisé</span>
       </div>
     </div>
@@ -463,6 +463,20 @@ const CloudSync = {
   pending: 0,
   failed: 0,
   running: false,
+  _qKey: 'scuborga_sync_queue',
+
+  // Persiste la file en localStorage : si l'onglet se ferme avant la fin
+  // d'une synchro, on ne perd plus les changements en attente (0.8.4).
+  persistQueue(){ try{ localStorage.setItem(this._qKey, JSON.stringify(this.queue)); }catch(e){} },
+  // Restaure la file au démarrage, une fois la connexion cloud confirmée.
+  restoreQueue(){
+    try{
+      const r = localStorage.getItem(this._qKey);
+      if(!r) return;
+      const q = JSON.parse(r);
+      if(Array.isArray(q) && q.length){ this.queue = q; this.pending = q.length; }
+    }catch(e){}
+  },
 
   // Mappe une opération interne -> ligne Supabase (colonnes réelles de la table)
   txToRow(t){
@@ -494,6 +508,7 @@ const CloudSync = {
     if(Store.data._fromCloud!==true) return; // sécurité : ne pousse que si on lit le cloud
     this.queue.push(item);
     this.pending=this.queue.length;
+    this.persistQueue();
     this.updateBadge();
     this.run();
   },
@@ -507,6 +522,7 @@ const CloudSync = {
     if(Store.data._fromCloud!==true) return;
     this.queue.push({kind:'setting', key, value});
     this.pending=this.queue.length;
+    this.persistQueue();
     this.updateBadge();
     this.run();
   },
@@ -520,7 +536,7 @@ const CloudSync = {
     const sh = (Store.data.sheets && Store.data.sheets[name]) || (typeof SHEETS!=='undefined' && SHEETS[name]);
     if(!sh) return;
     this.queue.push({kind:'sheet', name, header: sh.header||[], rows: sh.rows||[]});
-    this.pending=this.queue.length; this.updateBadge(); this.run();
+    this.pending=this.queue.length; this.persistQueue(); this.updateBadge(); this.run();
   },
   // Pousse toutes les tables (utile après un import/réorganisation globale)
   pushAllSheets(){
@@ -532,13 +548,13 @@ const CloudSync = {
     if(!sb) return;
     if(Store.data._fromCloud!==true) return;
     this.queue.push({kind:'rule', rule:{match:r.match, typeflux:r.typeflux||'', cat1:r.cat1||'', cat2:r.cat2||'', cat3:r.cat3||''}});
-    this.pending=this.queue.length; this.updateBadge(); this.run();
+    this.pending=this.queue.length; this.persistQueue(); this.updateBadge(); this.run();
   },
   deleteRule(match){
     if(!sb) return;
     if(Store.data._fromCloud!==true) return;
     this.queue.push({kind:'ruleDelete', match});
-    this.pending=this.queue.length; this.updateBadge(); this.run();
+    this.pending=this.queue.length; this.persistQueue(); this.updateBadge(); this.run();
   },
 
   async run(){
@@ -575,6 +591,7 @@ const CloudSync = {
         this.queue.shift();               // succès : on retire de la file
         this.failed=0;
         this.pending=this.queue.length;
+        this.persistQueue();
         this.updateBadge();
       }catch(e){
         // Échec (réseau ?) : on s'arrête, on retentera au prochain déclenchement
@@ -667,7 +684,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.8.3',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
+const APP_META={name:'Scuborga',version:'0.8.4',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -2367,6 +2384,14 @@ async function startApp(){
     } else {
       // Aucun cache : on évite un écran vide et on invite à réessayer.
       toast('Cloud injoignable. Vérifie ta connexion et recharge la page.');
+    }
+  } else {
+    // Cloud joignable : on restaure les changements non synchronisés d'une
+    // session précédente (fermeture d'onglet pendant un envoi en attente) (0.8.4).
+    CloudSync.restoreQueue();
+    if(CloudSync.queue.length){
+      toast(CloudSync.queue.length+' changement(s) en attente — synchro en cours…');
+      CloudSync.run();
     }
   }
 
