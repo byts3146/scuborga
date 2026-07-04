@@ -21,6 +21,15 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.9.5 — 04/07/2026
+--------------------
+Boutons de compte simplifiés (CC/EP) à côté de Filtres.
+Remplace les 3 boutons "Tous comptes / Compte courant / Épargne"
+(sur leur propre ligne) par 2 boutons compacts "CC" / "EP", déplacés
+sur la même ligne que le bouton Filtres.
+Comportement : cliquer sur un compte le sélectionne ; re-cliquer
+dessus désélectionne et revient à "tous comptes".
+
 v0.9.4 — 04/07/2026
 --------------------
 Correction contraste bouton Filtres + retrait stats Opérations.
