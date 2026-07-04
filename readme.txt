@@ -21,6 +21,19 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.9.1 — 04/07/2026
+--------------------
+Éclaircissement des pastilles de catégorie.
+Les pastilles de cat2/cat3 utilisaient encore des couleurs HSL
+pensées pour l'ancien thème sombre (fond très foncé + texte pâle),
+oubliées lors du passage au thème clair (v0.9.0) — elles juraient
+avec le reste de l'interface.
+- Nouvelles valeurs : fond pâle (87-92% de luminosité) + texte
+  saturé foncé (24-30%), même logique que le reste de la palette
+  claire.
+- Corrigé au passage 3 résidus rgba codés en dur oubliés lors de la
+  v0.9.0 (pastilles "À classer" et tags d'incohérence).
+
 v0.9.0 — 04/07/2026
 --------------------
 Passage en thème clair complet.
