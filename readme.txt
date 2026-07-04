@@ -21,6 +21,22 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.9.0 — 04/07/2026
+--------------------
+Passage en thème clair complet.
+Le fond bleu sombre a été jugé pas assez sobre. Bascule vers un
+thème clair (fond gris très clair #f5f6f8, cartes blanches, texte
+sombre #1c2430), avec recalcul complet de la palette pour garder des
+contrastes lisibles :
+- Bleu (--accent/--accent2), vert, rouge et amber assombris pour
+  rester lisibles sur fond clair (l'ancien bleu clair #4a9eff était
+  pensé pour du texte sur fond sombre, pas l'inverse)
+- Correction de tous les résidus visuels de l'ancien thème : fond du
+  header/nav, bordures, flèche des menus déroulants natifs, ombres
+  portées adoucies
+Sauvegarde de l'ancien style.css (thème sombre) conservée par Claude
+en cas de retour en arrière souhaité.
+
 v0.8.9 — 04/07/2026
 --------------------
 Cache-busting sur les fichiers CSS/JS.
