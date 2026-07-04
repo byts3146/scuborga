@@ -208,12 +208,6 @@ tr.tblsel td{background:rgba(37,99,235,.10)}
 .attn-list{display:flex;flex-direction:column;gap:8px}
 .attn-item{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surface2);border:1px solid var(--line);border-radius:11px;padding:10px 12px;cursor:pointer}
 .attn-item strong{font-size:13px}.attn-item span{font-size:12px;color:var(--muted)}
-.quickbar{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:8px;-webkit-overflow-scrolling:touch}
-.quickbar button{white-space:nowrap;padding:7px 12px;border-radius:20px;background:var(--surface);border:1px solid var(--line);font-size:12px;color:var(--muted);font-weight:600}
-.quickbar button.on{background:var(--accent2);color:#fff;border-color:var(--accent2)}
-.active-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
-.filter-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid rgba(37,99,235,.35);background:rgba(37,99,235,.10);color:var(--accent);border-radius:16px;padding:4px 9px;font-size:11.5px;font-weight:600}
-.filter-chip button{font-size:12px;color:var(--accent);padding:0 0 0 2px}
 .ops-summary{font-size:12px;color:var(--muted);font-weight:600;margin:2px 0 8px}
 .adv-toggle{width:100%;text-align:left;background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;font-weight:700;color:var(--muted);margin:2px 0 12px}
 .amount-row{display:flex;gap:8px;align-items:stretch}

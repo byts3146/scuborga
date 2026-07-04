@@ -306,7 +306,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.9.2',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
+const APP_META={name:'Scuborga',version:'0.9.3',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -1097,9 +1097,7 @@ function renderOps(){
   renderAcctChips();
 
   // zone futures, repliable (hors brouillons)
-  renderQuickFilters();
-
-  const futures=sortRecent(Store.all().filter(t=>isFuture(t)&&!isDraft(t)).filter(opsMatch).filter(quickMatch));
+  const futures=sortRecent(Store.all().filter(t=>isFuture(t)&&!isDraft(t)).filter(opsMatch));
   const fz=$('#futureZone');
   if(futures.length){
     fz.innerHTML=`<details class="grp" ${opsFuturesOpen?'open':''} id="futDetails" style="margin-bottom:12px">
@@ -1112,7 +1110,7 @@ function renderOps(){
   } else fz.innerHTML='';
 
   // liste principale (réalisé), ordre manuel ou date (hors brouillons)
-  const list=orderedList(Store.all().filter(t=>!isFuture(t)&&!isDraft(t)).filter(opsMatch).filter(quickMatch));
+  const list=orderedList(Store.all().filter(t=>!isFuture(t)&&!isDraft(t)).filter(opsMatch));
 
   // solde courant cumulé : seulement si un seul compte sélectionné.
   // Ancré sur le solde réel (Réglages) à la dernière opération, en remontant le temps.
@@ -1140,7 +1138,7 @@ function renderOps(){
   const c=activeFilterCount();
   $('#filterCount').textContent=c?` (${c})`:'';
   const btnReset=$('#btnResetFilters');
-  if(btnReset) btnReset.style.display=(opsAccount||quickFilter||c)?'':'none';
+  if(btnReset) btnReset.style.display=(opsAccount||c)?'':'none';
   const totalVisible=list.length+futures.length;
   const sum=list.reduce((a,t)=>a+amt(t),0);
   const os=$('#opsSummary'); if(os)os.textContent=`${totalVisible} opération(s) affichée(s) · total réalisé ${eur(sum)}`;
@@ -1153,7 +1151,7 @@ function renderAcctChips(){
     accs.map(a=>`<button class="${opsAccount===a?'on':''}" onclick="setOpsAccount('${a}')">${ACCOUNTS[a]||a}</button>`).join('');
 }
 function setOpsAccount(a){ opsAccount=a; renderOps(); }
-function clearFilters(){ opsFilters={}; opsAccount=null; quickFilter=null; $('#opsSearch').value=''; renderOps(); }
+function clearFilters(){ opsFilters={}; opsAccount=null; $('#opsSearch').value=''; renderOps(); }
 
 /* Drag & drop pour réordonner manuellement */
 let dragId=null;
@@ -1902,25 +1900,6 @@ function paramIO(){
 
 
 /* ============ ERGONOMIE v0.3.0 ============ */
-let quickFilter=null;
-function monthKey(d){ return d ? String(d).slice(0,7) : ''; }
-function currentMonthKey(){
-  const dates=Store.all().filter(t=>t.date&&!isDraft(t)&&!isFuture(t)).map(t=>t.date).sort();
-  return dates.length ? monthKey(dates[dates.length-1]) : new Date().toISOString().slice(0,7);
-}
-function quickMatch(t){
-  if(!quickFilter) return true;
-  if(quickFilter==='month') return monthKey(t.date)===currentMonthKey();
-  if(quickFilter==='season') return (t.season||'')===curSeason();
-  if(quickFilter==='unpointed') return !(t.pointage||'').trim();
-  if(quickFilter==='nojustif') return !(t.justif||'').trim();
-  if(quickFilter==='unclassified') return !isClassified(t);
-  return true;
-}
-function toggleQuickFilter(q){ quickFilter = quickFilter===q ? null : q; renderOps(); }
-function renderQuickFilters(){
-  document.querySelectorAll('#quickFilters button').forEach(b=>b.classList.toggle('on', b.dataset.q===quickFilter));
-}
 function controlStats(){
   const all=Store.all();
   const real=all.filter(t=>!isDraft(t)&&!isFuture(t));
