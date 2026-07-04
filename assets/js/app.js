@@ -306,7 +306,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.8.6',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
+const APP_META={name:'Scuborga',version:'0.8.7',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -598,6 +598,11 @@ function openTx(id,kind){
     <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin:-4px 0 12px;font-weight:600">
       <input type="checkbox" id="fFuture" style="width:auto" ${(isNew?isFut:isFuture(t))?'checked':''}>
       Opération future / en attente (non encore passée en banque)</label>
+    <div class="field"><label>Compte bancaire</label>
+      <div class="seg-row" id="accSeg">
+        <button type="button" class="seg-btn" data-acc="CC" onclick="setAccount('CC')">Compte courant</button>
+        <button type="button" class="seg-btn" data-acc="EP" onclick="setAccount('EP')">Épargne</button>
+      </div></div>
     <div class="field"><label>Montant</label>
       <div class="amount-row">
         <button type="button" id="fSign" class="sign-btn" onclick="toggleSign()">−</button>
@@ -639,12 +644,26 @@ function openTx(id,kind){
   setupLibelleAssist();
   // initialiser le champ Montant unique (signe selon débit/crédit existant)
   initAmountField(t);
+  initAccountField(t, isNew);
   setupFormKeyboard();
   // si l'adhérent actuel correspond au libellé, on le considère auto-rempli (modifiable au renommage)
   maybeAutofillAdh._last = (t.adherent && matchAdherent(t.libelle)===t.adherent) ? t.adherent : null;
   openSheet();
 }
 function natureLabel(n){ return n? (REF.natureLabels[n]||n) : ''; }
+
+// --- Compte bancaire CC/EP (0.8.7) ---
+// Corrige un manque : jusqu'ici, toute nouvelle opération était forcée
+// sur CC sans aucun moyen de choisir EP depuis le formulaire.
+let _txAccount = 'CC';
+function initAccountField(t, isNew){
+  _txAccount = isNew ? 'CC' : (t.account || 'CC');
+  setAccount(_txAccount);
+}
+function setAccount(a){
+  _txAccount = a;
+  document.querySelectorAll('#accSeg .seg-btn').forEach(b=>b.classList.toggle('on', b.dataset.acc===a));
+}
 
 // --- Champ Montant unique avec signe (0.8.0) ---
 // Convention : signe − = débit (sortie), + = crédit (entrée).
@@ -765,7 +784,7 @@ function saveTx(andNew){
   const amt=readAmount();
   const patch={
     libelle:g('#fLib'), date:g('#fDate'), nature:natureFromLabel(g('#fNat')),
-    debit:amt.debit, credit:amt.credit,
+    debit:amt.debit, credit:amt.credit, account:_txAccount,
     typeflux:g('#fType').toUpperCase().trim(), cat1:g('#fCat1').toUpperCase().trim(),
     cat2:g('#fCat2').toUpperCase().trim(), cat3:g('#fCat3').trim(),
     compte:g('#fCompte'), season:g('#fSeason').trim(), adherent:g('#fAdh').trim(),
@@ -784,7 +803,7 @@ function commitTx(patch){
     else { patch.origStatus = ''; }
     Store.update(editId,patch);
   }
-  else { patch.account='CC'; patch.origStatus=''; patch.status='draft'; Store.add(patch); }
+  else { patch.origStatus=''; patch.status='draft'; Store.add(patch); }
   if($('#fRule') && $('#fRule').checked && patch.cat1 && patch.cat2 && patch.libelle){
     const m=ruleKey(patch.libelle);
     Store.addRule({match:m,typeflux:patch.typeflux,cat1:patch.cat1,cat2:patch.cat2,cat3:patch.cat3});
@@ -796,7 +815,7 @@ function commitTx(patch){
     toast('Ajouté ✓ — saisie suivante');
     const seed={
       typeflux:patch.typeflux, cat1:patch.cat1, cat2:patch.cat2, cat3:patch.cat3,
-      compte:patch.compte, nature:patch.nature, season:patch.season,
+      compte:patch.compte, nature:patch.nature, season:patch.season, account:patch.account,
       date:patch.date, isPrev:patch.isPrev, origStatus:patch.isPrev?'ATT':'',
       libelle:'', debit:0, credit:0, adherent:'', justif:'', comment:''
     };

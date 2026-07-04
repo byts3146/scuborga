@@ -211,6 +211,10 @@ tr.tblsel td{background:rgba(74,158,255,.10)}
 .ops-summary{font-size:12px;color:var(--muted);font-weight:600;margin:2px 0 8px}
 .adv-toggle{width:100%;text-align:left;background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;font-weight:700;color:var(--muted);margin:2px 0 12px}
 .amount-row{display:flex;gap:8px;align-items:stretch}
+.seg-row{display:flex;gap:8px}
+.seg-btn{flex:1;border-radius:10px;border:1px solid var(--line);background:var(--surface2);color:var(--muted);
+  font-size:13px;font-weight:700;padding:10px 8px;cursor:pointer;transition:all .12s}
+.seg-btn.on{background:rgba(74,158,255,.15);border-color:var(--accent);color:var(--accent)}
 .sign-btn{flex:0 0 52px;border-radius:10px;border:1px solid var(--line);font-size:24px;font-weight:800;cursor:pointer;transition:all .12s}
 .sign-btn.minus{background:rgba(248,81,73,.12);border-color:rgba(248,81,73,.4);color:var(--red)}
 .sign-btn.plus{background:rgba(63,185,80,.12);border-color:rgba(63,185,80,.4);color:var(--green)}
