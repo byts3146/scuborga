@@ -9,6 +9,18 @@ documenté de façon systématique (messages de commit génériques type
 modification à partir de la v0.8.4.
 
 
+v0.8.6 — 04/07/2026
+--------------------
+Écran de résolution des conflits de synchro.
+- Nouvelle entrée "Synchro & conflits" dans Paramètres, avec badge
+  numérique si des conflits sont en attente.
+- Pour chaque conflit détecté (v0.8.5) : libellé lisible de
+  l'opération, raison du conflit, et 3 actions au choix : reprendre
+  la version cloud, garder la version locale (renvoi forcé), ou
+  ignorer.
+- Le badge de synchro global (haut d'écran) est cliquable et amène
+  directement à cet écran.
+
 v0.8.5 — 04/07/2026 (scission multi-fichiers)
 --------------------
 Abandon de la contrainte fichier unique. Aucun changement fonctionnel,
