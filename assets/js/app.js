@@ -306,7 +306,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.9.1',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
+const APP_META={name:'Scuborga',version:'0.9.2',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -1098,7 +1098,6 @@ function renderOps(){
 
   // zone futures, repliable (hors brouillons)
   renderQuickFilters();
-  renderActiveFilterChips();
 
   const futures=sortRecent(Store.all().filter(t=>isFuture(t)&&!isDraft(t)).filter(opsMatch).filter(quickMatch));
   const fz=$('#futureZone');
@@ -1140,6 +1139,8 @@ function renderOps(){
 
   const c=activeFilterCount();
   $('#filterCount').textContent=c?` (${c})`:'';
+  const btnReset=$('#btnResetFilters');
+  if(btnReset) btnReset.style.display=(opsAccount||quickFilter||c)?'':'none';
   const totalVisible=list.length+futures.length;
   const sum=list.reduce((a,t)=>a+amt(t),0);
   const os=$('#opsSummary'); if(os)os.textContent=`${totalVisible} opération(s) affichée(s) · total réalisé ${eur(sum)}`;
@@ -1919,20 +1920,6 @@ function quickMatch(t){
 function toggleQuickFilter(q){ quickFilter = quickFilter===q ? null : q; renderOps(); }
 function renderQuickFilters(){
   document.querySelectorAll('#quickFilters button').forEach(b=>b.classList.toggle('on', b.dataset.q===quickFilter));
-}
-const FCOL_LABELS={account:'Compte',season:'Saison',typeflux:'Type',cat1:'Cat. 1',cat2:'Cat. 2',cat3:'Cat. 3',nature:'Nature',adherent:'Adhérent'};
-function renderActiveFilterChips(){
-  const wrap=$('#activeFilterChips'); if(!wrap) return;
-  const chips=[];
-  if(opsAccount) chips.push(`<span class="filter-chip">Compte: ${esc(ACCOUNTS[opsAccount]||opsAccount)} <button onclick="setOpsAccount(null)">×</button></span>`);
-  if(quickFilter){
-    const labels={month:'Ce mois-ci',season:'Cette saison',unpointed:'Non pointées',nojustif:'Sans justificatif',unclassified:'À classer'};
-    chips.push(`<span class="filter-chip">${labels[quickFilter]||quickFilter} <button onclick="quickFilter=null;renderOps()">×</button></span>`);
-  }
-  Object.entries(opsFilters).forEach(([col,set])=>{
-    if(set&&set.size) chips.push(`<span class="filter-chip">${FCOL_LABELS[col]||col}: ${set.size} <button onclick="delete opsFilters['${esc(col)}'];renderOps()">×</button></span>`);
-  });
-  wrap.innerHTML=chips.join('');
 }
 function controlStats(){
   const all=Store.all();
