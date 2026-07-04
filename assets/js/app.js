@@ -306,7 +306,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.9.0',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
+const APP_META={name:'Scuborga',version:'0.9.1',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -430,10 +430,10 @@ function catFamily(t){
   }
 }
 function pillCat(t){
-  if(!isClassified(t)) return '<span class="pill" style="background:rgba(210,153,34,.15);color:var(--amber)">À classer</span>';
+  if(!isClassified(t)) return '<span class="pill" style="background:rgba(154,103,0,.12);color:var(--amber)">À classer</span>';
   const hue=CAT_HUE[catFamily(t)]||210;
-  const style2=`background:hsl(${hue} 55% 22%);color:hsl(${hue} 70% 78%);border:1px solid hsl(${hue} 45% 38%)`;
-  const style3=`background:hsl(${hue} 40% 14%);color:hsl(${hue} 55% 72%);border:1px solid hsl(${hue} 40% 30%)`;
+  const style2=`background:hsl(${hue} 65% 92%);color:hsl(${hue} 70% 30%);border:1px solid hsl(${hue} 45% 78%)`;
+  const style3=`background:hsl(${hue} 55% 87%);color:hsl(${hue} 65% 24%);border:1px solid hsl(${hue} 40% 70%)`;
   return `<span class="pill catpill" style="${style2}">${esc(t.cat2)}</span>`+
     (t.cat3?`<span class="pill catpill cat3pill" style="${style3}">${esc(t.cat3)}</span>`:'');
 }
@@ -498,14 +498,14 @@ function draftRow(t){
   const checked=draftSel.has(t.id);
   const sug=!isClassified(t)?suggest(t):null;
   const inc=incoherences(t);
-  const incTags=inc.map(x=>`<span class="pill" style="background:rgba(248,81,73,.15);color:var(--red)">${x}</span>`).join('');
+  const incTags=inc.map(x=>`<span class="pill" style="background:rgba(207,34,46,.12);color:var(--red)">${x}</span>`).join('');
   return `<div class="tx draftrow ${checked?'sel':''}" data-id="${t.id}">
     <input type="checkbox" class="drcheck" ${checked?'checked':''} onclick="event.stopPropagation();toggleDraft('${t.id}',this.checked)">
     <div class="grow" onclick="openTx('${t.id}','REEL')">
       <div class="lib">${esc(t.libelle||'(sans libellé)')}</div>
       <div class="meta"><span>${fmtDateY(t.date)}</span>${t.nature?`<span class="tag">${t.nature}</span>`:''}
         ${t.isPrev?'<span class="pill prev">future</span>':''}
-        ${t.cat2?pillCat(t):'<span class="pill" style="background:rgba(210,153,34,.15);color:var(--amber)">à classer</span>'}
+        ${t.cat2?pillCat(t):'<span class="pill" style="background:rgba(154,103,0,.12);color:var(--amber)">à classer</span>'}
         ${sug?`<span class="pill prev">≈ ${esc(sug.cat2)}</span>`:''}
         ${incTags}</div>
     </div>
