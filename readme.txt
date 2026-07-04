@@ -9,6 +9,19 @@ documenté de façon systématique (messages de commit génériques type
 modification à partir de la v0.8.4.
 
 
+v0.8.9 — 04/07/2026
+--------------------
+Cache-busting sur les fichiers CSS/JS.
+Corrige un effet de bord de la scission multi-fichiers (v0.8.5) : les
+navigateurs peuvent mettre en cache assets/css/style.css et
+assets/js/*.js indépendamment de index.html — une mise à jour pouvait
+donc ne pas apparaître immédiatement malgré un push réussi (constaté
+par Franck après la v0.8.8).
+- Ajout d'un paramètre ?v=<version> sur les balises <link> et
+  <script> pointant vers les fichiers externes, à incrémenter à
+  chaque montée de version (intégré au processus de commit habituel
+  aux côtés de APP_META.version et du <title>).
+
 v0.8.8 — 04/07/2026
 --------------------
 Bouton de fermeture sur tous les panneaux de saisie.
