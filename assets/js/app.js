@@ -306,7 +306,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.8.7',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
+const APP_META={name:'Scuborga',version:'0.8.8',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -582,7 +582,7 @@ function openTx(id,kind){
   const isNew=!id;
   const sug = id && !isClassified(t) ? suggest(t) : null;
   const sheet=$('#sheet');
-  sheet.innerHTML=`<div class="grab"></div>
+  sheet.innerHTML=`<div class="sheet-head"><div class="grab"></div><button type="button" class="sheet-close" onclick="closeSheet()" aria-label="Fermer">✕</button></div>
     <h2>${isNew?(isFut?'Nouveau flux futur':'Nouvelle opération'):'Classer / éditer'}</h2>
     ${sug?`<div class="rulehint">⚡ Suggestion: <b>${sug.cat2}</b>${sug.cat3?' / '+sug.cat3:''}
        &nbsp;<button class="btn sm" style="margin-left:auto" onclick="applySug('${sug.match}')">Appliquer</button></div>`:''}
@@ -858,7 +858,7 @@ function detectNewValues(){
 function showNewValuesModal(news, onConfirm){
   const cat3Sheets=['ADHESION','SORTIE','TEXTILE','AUTRE'];
   const sheet=$('#sheet');
-  sheet.innerHTML=`<div class="grab"></div>
+  sheet.innerHTML=`<div class="sheet-head"><div class="grab"></div><button type="button" class="sheet-close" onclick="closeSheet()" aria-label="Fermer">✕</button></div>
     <h2>Nouvelles valeurs</h2>
     <p class="note">Ces valeurs ne sont pas dans les tables. Confirme leur ajout :</p>
     ${news.map((n,i)=>`<div class="field">
@@ -998,7 +998,7 @@ function openMultiEdit(sel){
   const MULTI='*MULTI*';
   const common=f=>{ const vals=[...new Set(sel.map(t=>String(t[f]==null?'':t[f])))]; return vals.length===1?vals[0]:MULTI; };
   const sheet=$('#sheet');
-  sheet.innerHTML=`<div class="grab"></div>
+  sheet.innerHTML=`<div class="sheet-head"><div class="grab"></div><button type="button" class="sheet-close" onclick="closeSheet()" aria-label="Fermer">✕</button></div>
     <h2>Modifier ${sel.length} lignes</h2>
     <p class="note">Les champs marqués ${MULTI} ont des valeurs différentes. Modifie uniquement ce que tu veux appliquer à toutes les lignes ; laisse ${MULTI} pour ne pas y toucher.</p>
     <div class="field"><label>Libellé</label><input id="mLib" value="${esc(common('libelle'))}"></div>
@@ -1041,7 +1041,7 @@ function closeSheet(){ $('#sheetBg').classList.remove('open'); }
 // Confirmation custom (les confirm()/prompt() natifs sont bloqués dans certains webviews mobiles)
 function confirmModal(message, onYes, yesLabel){
   const sheet=$('#sheet');
-  sheet.innerHTML=`<div class="grab"></div>
+  sheet.innerHTML=`<div class="sheet-head"><div class="grab"></div><button type="button" class="sheet-close" onclick="closeSheet()" aria-label="Fermer">✕</button></div>
     <p style="font-size:15px;margin:8px 0 18px;line-height:1.4">${esc(message)}</p>
     <button class="btn" id="cmYes">${esc(yesLabel||'Confirmer')}</button>
     <button class="btn ghost" style="margin-top:10px" onclick="closeSheet()">Annuler</button>`;
@@ -1182,7 +1182,7 @@ function dropOn(targetId){
 function openFilters(){
   const all=Store.all();
   const sheet=$('#sheet');
-  let html=`<div class="grab"></div><h2>Filtrer les opérations</h2>
+  let html=`<div class="sheet-head"><div class="grab"></div><button type="button" class="sheet-close" onclick="closeSheet()" aria-label="Fermer">✕</button></div><h2>Filtrer les opérations</h2>
     <p class="note">Coche les valeurs à conserver. Sans coche = tout.</p>`;
   FCOLS.forEach(([col,label])=>{
     const counts={};
@@ -1835,7 +1835,7 @@ function paramSheetEdit(sn){
 function tblEdit(sn,ri){
   const sh=SHEETS[sn]; const hdr=sh.header; const r=sh.rows[ri];
   const sheet=$('#sheet');
-  sheet.innerHTML=`<div class="grab"></div><h2>Modifier la ligne #${ri+1}</h2>
+  sheet.innerHTML=`<div class="sheet-head"><div class="grab"></div><button type="button" class="sheet-close" onclick="closeSheet()" aria-label="Fermer">✕</button></div><h2>Modifier la ligne #${ri+1}</h2>
     ${hdr.map((h,ci)=>`<div class="field"><label>${esc(h)}</label>
       <input id="te_${ci}" value="${esc(r[ci]||'').replace(/"/g,'&quot;')}"></div>`).join('')}
     <button class="btn" onclick="tblEditSave('${esc(sn)}',${ri})">Enregistrer</button>
