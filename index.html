@@ -269,7 +269,7 @@ tr.tblsel td{background:rgba(74,158,255,.10)}
         <h1 id="hTitle">Tableau de bord</h1>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-        <span class="version-badge" id="appVersion">bêta 0.8.4</span>
+        <span class="version-badge" id="appVersion">bêta 0.8.5</span>
         <span id="syncBadge" class="sync-ok">☁︎ Synchronisé</span>
       </div>
     </div>
@@ -464,6 +464,8 @@ const CloudSync = {
   failed: 0,
   running: false,
   _qKey: 'scuborga_sync_queue',
+  conflicts: [],
+  _cKey: 'scuborga_sync_conflicts',
 
   // Persiste la file en localStorage : si l'onglet se ferme avant la fin
   // d'une synchro, on ne perd plus les changements en attente (0.8.4).
@@ -476,6 +478,25 @@ const CloudSync = {
       const q = JSON.parse(r);
       if(Array.isArray(q) && q.length){ this.queue = q; this.pending = q.length; }
     }catch(e){}
+  },
+  // Conflits détectés (0.8.5) : une opération modifiée localement avait déjà
+  // été modifiée ou supprimée côté cloud par un autre appareil/utilisateur.
+  // On ne l'écrase pas silencieusement ; on journalise pour arbitrage manuel.
+  persistConflicts(){ try{ localStorage.setItem(this._cKey, JSON.stringify(this.conflicts)); }catch(e){} },
+  restoreConflicts(){
+    try{
+      const r = localStorage.getItem(this._cKey);
+      if(!r) return;
+      const c = JSON.parse(r);
+      if(Array.isArray(c)) this.conflicts = c;
+    }catch(e){}
+  },
+  logConflict(id, reason){
+    this.conflicts.push({ id, reason, when: new Date().toISOString() });
+    this.persistConflicts();
+    this.updateBadge();
+    toast('⚠ Conflit de synchro sur '+id);
+    console.warn('Conflit CloudSync', id, reason);
   },
 
   // Mappe une opération interne -> ligne Supabase (colonnes réelles de la table)
@@ -513,7 +534,7 @@ const CloudSync = {
     this.run();
   },
 
-  pushTx(t){ this.enqueue({kind:'upsert', id:t.id, row:this.txToRow(t)}); },
+  pushTx(t){ this.enqueue({kind:'upsert', id:t.id, row:this.txToRow(t), baseline:t._cloudUpdatedAt||null}); },
   deleteTx(id){ this.enqueue({kind:'delete', id}); },
 
   // Réglages (seq, realBalances, defaultSeason) -> table settings
@@ -564,9 +585,32 @@ const CloudSync = {
       const item=this.queue[0];
       try{
         if(item.kind==='upsert'){
-          const { error } = await sb.from('operations')
-            .upsert(item.row, { onConflict:'legacy_id' });
+          if(item.baseline){
+            // La ligne existait déjà côté cloud lors de notre dernière lecture :
+            // on vérifie qu'elle n'a pas été modifiée/supprimée entre-temps
+            // par un autre appareil avant d'écraser (0.8.5).
+            const { data:cur, error:qErr } = await sb.from('operations')
+              .select('updated_at').eq('legacy_id', item.id).maybeSingle();
+            if(qErr) throw qErr;
+            if(!cur){
+              this.logConflict(item.id, 'supprimée côté cloud pendant une modification locale');
+              this.queue.shift(); this.pending=this.queue.length; this.persistQueue(); this.updateBadge();
+              continue;
+            }
+            if(cur.updated_at!==item.baseline){
+              this.logConflict(item.id, 'modifiée par ailleurs entre-temps (cloud plus récent)');
+              this.queue.shift(); this.pending=this.queue.length; this.persistQueue(); this.updateBadge();
+              continue;
+            }
+          }
+          const { data:upd, error } = await sb.from('operations')
+            .upsert(item.row, { onConflict:'legacy_id' })
+            .select('legacy_id, updated_at').maybeSingle();
           if(error) throw error;
+          if(upd){
+            const t=Store.data.tx.find(x=>x.id===upd.legacy_id);
+            if(t){ t._cloudUpdatedAt=upd.updated_at; Store.save(); }
+          }
         } else if(item.kind==='delete'){
           const { error } = await sb.from('operations')
             .delete().eq('legacy_id', item.id);
@@ -610,6 +654,7 @@ const CloudSync = {
   updateBadge(){
     const el=document.getElementById('syncBadge');
     if(!el) return;
+    if(this.conflicts.length>0){ el.textContent='⚠︎ '+this.conflicts.length+' conflit(s)'; el.className='sync-warn'; return; }
     if(this.queue.length===0){ el.textContent='☁︎ Synchronisé'; el.className='sync-ok'; }
     else if(this.failed>0){ el.textContent='⚠︎ '+this.queue.length+' en attente'; el.className='sync-warn'; }
     else { el.textContent='⟳ Envoi… ('+this.queue.length+')'; el.className='sync-busy'; }
@@ -684,7 +729,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.8.4',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
+const APP_META={name:'Scuborga',version:'0.8.5',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -2312,7 +2357,8 @@ function cloudRowToTx(r){
     pointage: r.pointage || '',
     origStatus: r.orig_status || '',
     isPrev: !!r.is_prev,
-    status: r.status || ''
+    status: r.status || '',
+    _cloudUpdatedAt: r.updated_at || null
   };
 }
 
@@ -2389,6 +2435,11 @@ async function startApp(){
     // Cloud joignable : on restaure les changements non synchronisés d'une
     // session précédente (fermeture d'onglet pendant un envoi en attente) (0.8.4).
     CloudSync.restoreQueue();
+    CloudSync.restoreConflicts();
+    if(CloudSync.conflicts.length){
+      toast(CloudSync.conflicts.length+' conflit(s) de synchro à vérifier');
+      CloudSync.updateBadge();
+    }
     if(CloudSync.queue.length){
       toast(CloudSync.queue.length+' changement(s) en attente — synchro en cours…');
       CloudSync.run();
