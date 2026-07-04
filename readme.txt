@@ -9,6 +9,21 @@ documenté de façon systématique (messages de commit génériques type
 modification à partir de la v0.8.4.
 
 
+v0.8.7 — 04/07/2026
+--------------------
+Correction : compte bancaire (CC/EP) enfin sélectionnable.
+Bug corrigé : aucune interface ne permettait de choisir le compte
+bancaire d'une opération — toute nouvelle opération était forcée
+silencieusement sur CC. Vérifié en base : les 1846 opérations
+existantes datent toutes de la migration groupée du 25/06, donc
+aucune opération saisie manuellement n'avait jamais pu être posée
+sur EP jusqu'ici.
+- Nouveau sélecteur "Compte courant / Épargne" dans le formulaire de
+  saisie (création et édition)
+- La saisie en série conserve le compte choisi d'une ligne à l'autre
+Non traité : l'édition multiple (plusieurs lignes à la fois) ne
+permet toujours pas de changer le compte en masse.
+
 v0.8.6 — 04/07/2026
 --------------------
 Écran de résolution des conflits de synchro.
