@@ -306,7 +306,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.9.3',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
+const APP_META={name:'Scuborga',version:'0.9.4',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -1139,9 +1139,6 @@ function renderOps(){
   $('#filterCount').textContent=c?` (${c})`:'';
   const btnReset=$('#btnResetFilters');
   if(btnReset) btnReset.style.display=(opsAccount||c)?'':'none';
-  const totalVisible=list.length+futures.length;
-  const sum=list.reduce((a,t)=>a+amt(t),0);
-  const os=$('#opsSummary'); if(os)os.textContent=`${totalVisible} opération(s) affichée(s) · total réalisé ${eur(sum)}`;
 }
 
 function renderAcctChips(){

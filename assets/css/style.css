@@ -43,7 +43,7 @@ header{position:sticky;top:0;z-index:30;background:rgba(245,246,248,.90);
 .btn{background:var(--accent2);color:#fff;border-radius:11px;padding:13px 16px;font-weight:600;
   width:100%;text-align:center;display:block;transition:opacity .15s}
 .btn:active{opacity:.7}
-.btn.sec{background:var(--surface2);border:1px solid var(--line)}
+.btn.sec{background:var(--surface2);border:1px solid var(--line);color:var(--text)}
 .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--muted)}
 .btn.sm{padding:9px 12px;width:auto;display:inline-block;font-size:13px}
 .row{display:flex;gap:10px}
@@ -208,7 +208,6 @@ tr.tblsel td{background:rgba(37,99,235,.10)}
 .attn-list{display:flex;flex-direction:column;gap:8px}
 .attn-item{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surface2);border:1px solid var(--line);border-radius:11px;padding:10px 12px;cursor:pointer}
 .attn-item strong{font-size:13px}.attn-item span{font-size:12px;color:var(--muted)}
-.ops-summary{font-size:12px;color:var(--muted);font-weight:600;margin:2px 0 8px}
 .adv-toggle{width:100%;text-align:left;background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;font-weight:700;color:var(--muted);margin:2px 0 12px}
 .amount-row{display:flex;gap:8px;align-items:stretch}
 .seg-row{display:flex;gap:8px}
