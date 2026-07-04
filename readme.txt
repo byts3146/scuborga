@@ -21,6 +21,18 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.9.4 — 04/07/2026
+--------------------
+Correction contraste bouton Filtres + retrait stats Opérations.
+1) Bug de contraste corrigé : la classe .btn.sec (utilisée par le
+bouton "Filtres" et 8 autres boutons dans l'appli) n'avait pas de
+couleur de texte propre et héritait du blanc défini par .btn — texte
+blanc sur fond quasi-blanc, donc illisible depuis le passage au
+thème clair (v0.9.0). Corrige tous les boutons concernés, pas
+seulement Filtres.
+2) Retrait de la ligne "X opération(s) affichée(s) · total réalisé"
+dans la vue Opérations, jugée superflue.
+
 v0.9.3 — 04/07/2026
 --------------------
 Retrait des filtres rapides (Ce mois-ci, Cette saison...).
