@@ -9,6 +9,18 @@ documenté de façon systématique (messages de commit génériques type
 modification à partir de la v0.8.4.
 
 
+v0.8.5 — 04/07/2026 (scission multi-fichiers)
+--------------------
+Abandon de la contrainte fichier unique. Aucun changement fonctionnel,
+uniquement une réorganisation du code :
+- index.html : structure HTML uniquement
+- assets/css/style.css : ensemble des styles
+- assets/js/data.js : données de référence statiques (catégories,
+  comptes comptables, adhérents, feuilles de classification)
+- assets/js/app.js : logique applicative (Store, CloudSync, UI, init)
+Correction incidente : le <title> affichait encore "bêta 0.8.3"
+malgré les montées de version précédentes ; recalé sur 0.8.5.
+
 v0.8.5 — 04/07/2026
 --------------------
 Détection de conflit de synchro cloud.
