@@ -9,6 +9,18 @@ documenté de façon systématique (messages de commit génériques type
 modification à partir de la v0.8.4.
 
 
+[Infra] 04/07/2026 — Ajout de .nojekyll
+--------------------
+Corrige des échecs de déploiement intermittents observés depuis le
+28/06 ("Page build failed" sur GitHub Pages, constaté par Franck
+après la v0.8.9). Cause : le repo passait par le moteur Jekyll par
+défaut alors que le site est 100% statique. Ajout d'un fichier
+.nojekyll à la racine pour que GitHub Pages serve les fichiers
+directement. Vérifié : déploiement du commit suivant réussi
+("built", sans erreur) via l'API GitHub.
+Pas de changement de version applicative (fichier de config du
+dépôt, pas du code de l'app).
+
 v0.8.9 — 04/07/2026
 --------------------
 Cache-busting sur les fichiers CSS/JS.
