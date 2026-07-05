@@ -306,7 +306,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.10.1',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
+const APP_META={name:'Scuborga',version:'0.10.2',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -1571,7 +1571,7 @@ const PARAM_MENU=[
   ['tables','Tables de classification','Comptes, sorties, adhérents… (1 volet par feuille)'],
   ['soldes','Soldes des comptes','Solde réel de chaque compte bancaire'],
   ['io','Import / sauvegarde','CSV bancaire, export et restauration JSON'],
-  ['controls','Contrôles','Incohérences, doublons, champs manquants'],
+  ['controls','Contrôles','Incohérences de classement, champs manquants'],
   ['sync','Synchro & conflits','File d\u2019attente et conflits de synchronisation cloud'],
   ['about','À propos','Version, statut bêta et limites connues']
 ];
