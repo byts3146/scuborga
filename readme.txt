@@ -21,6 +21,15 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.10.3 — 04/07/2026
+--------------------
+Regroupement de Paramètres en 3 sections.
+PARAM_MENU (liste plate de 7 entrées) devient PARAM_SECTIONS :
+- Réglages : Saison par défaut, Soldes des comptes
+- Données : Tables de classification, Import / sauvegarde
+- Diagnostic : Contrôles, Synchro & conflits, À propos
+Aucun changement fonctionnel, juste un regroupement visuel.
+
 v0.10.2 — 04/07/2026
 --------------------
 Correction description obsolète : "Contrôles" mentionnait encore les
