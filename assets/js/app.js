@@ -306,7 +306,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.10.2',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
+const APP_META={name:'Scuborga',version:'0.10.3',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -1566,25 +1566,33 @@ function rebuildRefFromSheets(){
   Store.data.sheets=SHEETS; Store.data.ref=REF; Store.save();
 }
 
-const PARAM_MENU=[
-  ['season','Saison par défaut','Choisir la saison affichée à l\u2019ouverture'],
-  ['tables','Tables de classification','Comptes, sorties, adhérents… (1 volet par feuille)'],
-  ['soldes','Soldes des comptes','Solde réel de chaque compte bancaire'],
-  ['io','Import / sauvegarde','CSV bancaire, export et restauration JSON'],
-  ['controls','Contrôles','Incohérences de classement, champs manquants'],
-  ['sync','Synchro & conflits','File d\u2019attente et conflits de synchronisation cloud'],
-  ['about','À propos','Version, statut bêta et limites connues']
+const PARAM_SECTIONS=[
+  { title:'Réglages', items:[
+    ['season','Saison par défaut','Choisir la saison affichée à l\u2019ouverture'],
+    ['soldes','Soldes des comptes','Solde réel de chaque compte bancaire'],
+  ]},
+  { title:'Données', items:[
+    ['tables','Tables de classification','Comptes, sorties, adhérents… (1 volet par feuille)'],
+    ['io','Import / sauvegarde','CSV bancaire, export et restauration JSON'],
+  ]},
+  { title:'Diagnostic', items:[
+    ['controls','Contrôles','Incohérences de classement, champs manquants'],
+    ['sync','Synchro & conflits','File d\u2019attente et conflits de synchronisation cloud'],
+    ['about','À propos','Version, statut bêta et limites connues'],
+  ]},
 ];
 let paramView=null;
 function renderParam(){ paramView?paramOpen(paramView):paramHome(); }
 function paramHome(){
   paramView=null;
   $('#paramHome').style.display='block'; $('#paramSub').style.display='none';
-  $('#paramHome').innerHTML=PARAM_MENU.map(([k,t,d])=>`
-    <div class="card" style="cursor:pointer;display:flex;align-items:center;gap:12px" onclick="paramOpen('${k}')">
+  $('#paramHome').innerHTML=PARAM_SECTIONS.map(sec=>`
+    <div class="tag" style="margin:14px 0 6px 2px;text-transform:uppercase;letter-spacing:.04em">${sec.title}</div>
+    ${sec.items.map(([k,t,d])=>`
+    <div class="card" style="cursor:pointer;display:flex;align-items:center;gap:12px;margin-bottom:8px" onclick="paramOpen('${k}')">
       <div style="flex:1"><div style="font-weight:600;font-size:15px">${t}${k==='sync'&&CloudSync.conflicts.length?` <span class="tag" style="background:var(--red,#e5484d);color:#fff">${CloudSync.conflicts.length}</span>`:''}</div>
         <div class="tag" style="margin-top:2px">${d}</div></div>
-      <span style="color:var(--muted);font-size:20px">›</span></div>`).join('')
+      <span style="color:var(--muted);font-size:20px">›</span></div>`).join('')}`).join('')
     + `<div class="card" id="accountCard" style="margin-top:16px">
         <div style="font-weight:600;font-size:15px;margin-bottom:4px">Compte</div>
         <div class="tag" id="accountEmail">—</div>
