@@ -21,6 +21,26 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.10.4 — 04/07/2026
+--------------------
+Boutons retour, soldes mensuels par saison, contrôle de cohérence,
+À propos revu.
+1) Bouton "‹ Retour aux réglages" ajouté dans Contrôles (vue à part
+   entière, n'en avait aucun). Pour Synchro & conflits : le bouton
+   standard est bien présent dans le code, identique aux autres
+   écrans — à re-vérifier après déploiement.
+2) Nouveau bloc "Soldes de début de mois" dans Paramètres → Soldes
+   des comptes : saisie du solde bancaire réel au 1er de chaque mois
+   d'une saison (sept. à août), par compte (CC/EP). Synchronisé au
+   cloud (setting monthlyBalances).
+3) Contrôles : sélecteur de saison (filtre toutes les statistiques)
+   + nouveau bloc "Cohérence des soldes de début de mois" — vérifie
+   que solde(mois N) + mouvements réels = solde(mois N+1), signale
+   les écarts.
+4) À propos : contenu remplacé par des informations dynamiques
+   (nb opérations, règles, brouillons, saison en cours, date de
+   version) au lieu d'un texte descriptif générique.
+
 v0.10.3 — 04/07/2026
 --------------------
 Regroupement de Paramètres en 3 sections.
