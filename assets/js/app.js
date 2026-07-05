@@ -306,7 +306,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.10.0',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
+const APP_META={name:'Scuborga',version:'0.10.1',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -1857,7 +1857,7 @@ function persistSheets(){ Store.data.sheets=SHEETS; Store.save(); CloudSync.push
 function paramSoldes(){
   const real=Store.data.realBalances||{};
   $('#paramSubBody').innerHTML=`<h2 style="font-size:16px">Soldes des comptes</h2>
-    <p class="note">Saisis le solde réel de chaque compte (celui affiché sur ton relevé bancaire). Il est affiché tel quel sur l'accueil.</p>`+
+    <p class="note">Saisis le solde réel de chaque compte (celui affiché sur ton relevé bancaire). Il sert de référence de trésorerie, indépendante du calcul automatique des opérations.</p>`+
     Object.entries(ACCOUNTS).map(([k,lbl])=>`<div class="field">
       <label>${lbl}</label>
       <input type="number" step="0.01" id="open_${k}" value="${real[k]!=null?real[k]:''}" placeholder="0.00"
