@@ -306,7 +306,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.9.8',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
+const APP_META={name:'Scuborga',version:'0.10.0',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -331,17 +331,18 @@ function curSeason(){
 }
 
 /* ============ NAV ============ */
-const titles={dash:'Tableau de bord',import:'Importer',classer:'Classer',ops:'Opérations',report:'Bilans',controls:'Contrôles',param:'Paramètres'};
+const titles={import:'Importer',classer:'Saisie',ops:'Opérations',report:'Bilan',adherents:'Adhérents',sorties:'Sorties',controls:'Contrôles',param:'Paramètres'};
 function go(v){
   document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
   $('#v-'+v).classList.add('active');
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
   $('#hTitle').textContent=titles[v]||'';
   window.scrollTo(0,0);
-  if(v==='dash')renderDash();
   if(v==='classer')renderClasser();
   if(v==='ops')renderOps();
   if(v==='report')renderReport();
+  if(v==='adherents')renderAdherents();
+  if(v==='sorties')renderSorties();
   if(v==='controls')renderControls();
   if(v==='param'){ paramView=null; tableSheet=null; renderParam(); }
 }
@@ -352,54 +353,17 @@ function refreshCurrent(){
   const act=document.querySelector('.view.active');
   if(!act) return;
   const v=act.id.replace('v-','');
-  if(v==='dash')renderDash();
-  else if(v==='classer')renderClasser();
+  if(v==='classer')renderClasser();
   else if(v==='ops')renderOps();
   else if(v==='report')renderReport();
+  else if(v==='adherents')renderAdherents();
+  else if(v==='sorties')renderSorties();
   else if(v==='controls')renderControls();
 }
 
 /* ============ DASHBOARD ============ */
 function seasonTx(){ const s=curSeason(); return Store.all().filter(t=>!s||t.season===s); }
 const ACCOUNTS={CC:'Compte courant', EP:'Livret épargne'};
-function renderDash(){
-  const sel=$('#seasonSel'); const seasons=allSeasons();
-  sel.innerHTML=seasons.map(s=>`<option ${s===curSeason()?'selected':''}>${s}</option>`).join('');
-  sel.onchange=()=>{Store.data.season=sel.value;Store.save();renderDash();};
-  const tx=seasonTx();
-  let prod=0,char=0;
-  tx.forEach(t=>{ if(isDraft(t)||isFuture(t)||!isClassified(t))return; const a=amt(t); if(t.typeflux==='PRODUITS')prod+=a; else char+=a; });
-  const res=prod+char;
-
-  // Soldes de trésorerie = solde réel saisi (Réglages), affiché tel quel (source: relevé bancaire)
-  const real=Store.data.realBalances||{};
-  const accLast={};
-  Store.all().forEach(t=>{ if(isDraft(t)||isFuture(t))return; const a=t.account||'CC';
-    if(t.date && (!accLast[a]||t.date>accLast[a])) accLast[a]=t.date; });
-  const accs=Object.keys(ACCOUNTS).filter(a=>accLast[a]||real[a]!=null);
-  $('#overviewCard').innerHTML=`<h2>Vue d'ensemble</h2>
-    <div style="display:flex;text-align:center;margin-bottom:14px">
-      <div style="flex:1"><div class="tag">Produits</div><div style="font-size:18px;font-weight:700;color:var(--green);margin-top:2px">${eur(prod)}</div></div>
-      <div style="flex:1;border-left:1px solid var(--line)"><div class="tag">Charges</div><div style="font-size:18px;font-weight:700;color:var(--red);margin-top:2px">${eur(char)}</div></div>
-      <div style="flex:1;border-left:1px solid var(--line)"><div class="tag">Résultat</div><div style="font-size:18px;font-weight:700;color:${res>=0?'var(--green)':'var(--red)'};margin-top:2px">${eur(res)}</div></div>
-    </div>`+
-    accs.map(a=>{
-      const bal=parseFloat(real[a]); const has=!isNaN(bal);
-      const last=accLast[a];
-      return `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-top:1px solid var(--line)">
-        <div><div style="font-weight:600;font-size:14px">${ACCOUNTS[a]}</div>
-          <div class="tag">${last?'maj '+fmtDateFull(last):'—'}</div></div>
-        <div style="font-weight:700;font-size:17px;color:${!has?'var(--muted)':bal>=0?'var(--green)':'var(--red)'}">${has?eur(bal):'à renseigner'}</div>
-      </div>`;
-    }).join('')+`<div class="tag" style="margin-top:8px">Solde réel modifiable dans Paramètres → Soldes des comptes.</div>`;
-
-  updateBadge();
-  // Dernières opérations — toutes saisons, plus récentes d'abord
-  const recent=sortRecent(Store.all().filter(t=>!isDraft(t))).slice(0,8);
-  $('#recentList').innerHTML = recent.length? recent.map(txRow).join('') :
-    '<div class="empty" style="padding:20px">Aucune opération. Importe un relevé ou ajoute un flux.</div>';
-  attachTxClicks('#recentList');
-}
 function fmtDateFull(d){ if(!d)return''; const p=String(d).split('-'); return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:d; }
 
 /* ============ TX ROW ============ */
@@ -826,7 +790,7 @@ function commitTx(patch){
   }
   closeSheet(); toast(editId?'Enregistré ✓':'Ajouté au brouillon');
   const active=document.querySelector('.view.active').id.replace('v-','');
-  go(editId? (active==='import'?'dash':active) : 'classer');
+  go(editId? (active==='import'?'ops':active) : 'classer');
 }
 
 // Rouvre le formulaire de saisie pré-rempli à partir d'un objet (pour la saisie en série)
@@ -1226,10 +1190,8 @@ function renderReport(){
     sel.value=repSeason||'';
   }
   const tx=Store.all().filter(t=>isClassified(t) && !isFuture(t) && !isDraft(t) && (!repSeason || t.season===repSeason));
-  if(repMode==='cr')reportCR(tx);
-  else if(repMode==='cacvcf')reportCACVCF(tx);
-  else if(repMode==='adh')reportAdh(tx);
-  else reportSortie(tx);
+  if(repMode==='cacvcf')reportCACVCF(tx);
+  else reportCR(tx);
 }
 function reportCACVCF(tx){
   // Regroupe par Cat 1 (CA, CF, CV) puis par Cat 2, puis détail Cat 3
@@ -1312,7 +1274,8 @@ function resolveAdh(t){
   for(const [a,an] of adhListNorm()){ if(c===an || c.startsWith(an) || an.startsWith(c)) return a; }
   return '';
 }
-function reportAdh(tx){
+function reportAdh(tx, targetId){
+  targetId = targetId || 'repBody';
   const by={};
   tx.forEach(t=>{ const a=resolveAdh(t); if(!a)return;
     by[a]=by[a]||{prod:0,char:0,lines:[]};
@@ -1341,9 +1304,10 @@ function reportAdh(tx){
         <div class="adh-block"><div class="adh-bh" style="color:var(--red)">▸ Dépenses</div>${depHtml}</div>
       </div></details>`;
   }).join('');
-  $('#repBody').innerHTML=`<p class="note">Recettes / dépenses / net par adhérent ${repSeason?'(saison '+repSeason+')':'(toutes saisons)'}. Les dépenses incluent les lignes dont le nom figure en commentaire (licences, assurances…).</p>`+(rows||'<div class="empty">Aucun adhérent renseigné</div>');
+  $('#'+targetId).innerHTML=`<p class="note">Recettes / dépenses / net par adhérent ${repSeason?'(saison '+repSeason+')':'(toutes saisons)'}. Les dépenses incluent les lignes dont le nom figure en commentaire (licences, assurances…).</p>`+(rows||'<div class="empty">Aucun adhérent renseigné</div>');
 }
-function reportSortie(tx){
+function reportSortie(tx, targetId){
+  targetId = targetId || 'repBody';
   // Une sortie/voyage est identifiée par sa Cat 3 (nom + date). On regroupe TOUT
   // ce qui porte cette Cat 3 (recettes ET dépenses : transport, repas, logement, plongées…).
   const tripRe=/\b(PALAMOS|ESTARTIT|CERBERE|BANYULS|DJIBOUTI|MARTINIQUE|BALI|EGYPTE|AFS|EL PORT|LA CIOTAT|FOSSES|RIFAP)\b/i;
@@ -1405,8 +1369,26 @@ function reportSortie(tx){
         <table>${deps||'<tr><td class="tag">—</td></tr>'}</table>
       </div></details>`;
   }).join('');
-  $('#repBody').innerHTML=`<p class="note">Recettes, dépenses et net par sortie / voyage ${repSeason?'(saison '+repSeason+')':'(toutes saisons)'}. Touche une sortie pour voir qui a payé et qui reste à payer.</p>`+
+  $('#'+targetId).innerHTML=`<p class="note">Recettes, dépenses et net par sortie / voyage ${repSeason?'(saison '+repSeason+')':'(toutes saisons)'}. Touche une sortie pour voir qui a payé et qui reste à payer.</p>`+
     (blocks||'<div class="empty">Aucune sortie</div>');
+}
+function renderAdherents(){
+  const sel=$('#adhSeasonSel');
+  if(sel && !sel.dataset.init){ sel.dataset.init='1'; sel.onchange=()=>{ repSeason=sel.value||null; renderAdherents(); }; }
+  if(sel){ const seasons=allSeasons(); if(repSeason===null) repSeason=curSeason();
+    sel.innerHTML='<option value="">Toutes les saisons</option>'+seasons.map(s=>`<option value="${s}" ${s===repSeason?'selected':''}>${s}</option>`).join('');
+    sel.value=repSeason||''; }
+  const tx=Store.all().filter(t=>isClassified(t) && !isFuture(t) && !isDraft(t) && (!repSeason || t.season===repSeason));
+  reportAdh(tx,'adhBody');
+}
+function renderSorties(){
+  const sel=$('#sortieSeasonSel');
+  if(sel && !sel.dataset.init){ sel.dataset.init='1'; sel.onchange=()=>{ repSeason=sel.value||null; renderSorties(); }; }
+  if(sel){ const seasons=allSeasons(); if(repSeason===null) repSeason=curSeason();
+    sel.innerHTML='<option value="">Toutes les saisons</option>'+seasons.map(s=>`<option value="${s}" ${s===repSeason?'selected':''}>${s}</option>`).join('');
+    sel.value=repSeason||''; }
+  const tx=Store.all().filter(t=>isClassified(t) && !isFuture(t) && !isDraft(t) && (!repSeason || t.season===repSeason));
+  reportSortie(tx,'sortieBody');
 }
 document.querySelectorAll('#repSeg button').forEach(b=>b.onclick=()=>{
   repMode=b.dataset.r;document.querySelectorAll('#repSeg button').forEach(x=>x.classList.toggle('on',x===b));renderReport();});
@@ -1883,7 +1865,7 @@ function paramSoldes(){
 }
 function setRealBal(k,v){ Store.data.realBalances=Store.data.realBalances||{};
   Store.data.realBalances[k]=parseFloat(v); if(isNaN(Store.data.realBalances[k]))delete Store.data.realBalances[k];
-  Store.save(); CloudSync.pushBalances(); toast('Solde enregistré'); if(document.querySelector('#v-dash.active'))renderDash(); }
+  Store.save(); CloudSync.pushBalances(); toast('Solde enregistré'); }
 
 /* --- Import / Export --- */
 function paramIO(){
@@ -1949,7 +1931,7 @@ function importBackupFile(input){
     const data=payload.data||payload;
     if(!data || !Array.isArray(data.tx)) throw new Error('format');
     confirmModal('Remplacer les données locales par cette sauvegarde ?',()=>{
-      Store.data=data; Store.save(); closeSheet(); toast('Sauvegarde importée'); go('dash');
+      Store.data=data; Store.save(); closeSheet(); toast('Sauvegarde importée'); go('ops');
     },'Importer');
   }catch(e){ toast('Sauvegarde invalide'); } };
   r.readAsText(file);
@@ -2072,7 +2054,8 @@ async function startApp(){
   } else if(Store.data.ref && Store.data.ref.typeFlux && Store.data.ref.cat2 && Store.data.ref.adherents){
     REF = Store.data.ref;
   }
-  go('dash');
+  go('ops');
+  updateBadge();
 }
 // Au chargement : tente de restaurer une session ; sinon l'écran de connexion reste affiché.
 checkSession();
