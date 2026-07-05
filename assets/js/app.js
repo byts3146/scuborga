@@ -306,7 +306,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.9.7',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
+const APP_META={name:'Scuborga',version:'0.9.8',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -331,7 +331,7 @@ function curSeason(){
 }
 
 /* ============ NAV ============ */
-const titles={dash:'Tableau de bord',import:'Importer',classer:'À classer',ops:'Opérations',report:'Bilans',controls:'Contrôles',param:'Paramètres'};
+const titles={dash:'Tableau de bord',import:'Importer',classer:'Classer',ops:'Opérations',report:'Bilans',controls:'Contrôles',param:'Paramètres'};
 function go(v){
   document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
   $('#v-'+v).classList.add('active');
@@ -370,7 +370,6 @@ function renderDash(){
   let prod=0,char=0;
   tx.forEach(t=>{ if(isDraft(t)||isFuture(t)||!isClassified(t))return; const a=amt(t); if(t.typeflux==='PRODUITS')prod+=a; else char+=a; });
   const res=prod+char;
-  renderDashAttention();
 
   // Soldes de trésorerie = solde réel saisi (Réglages), affiché tel quel (source: relevé bancaire)
   const real=Store.data.realBalances||{};
@@ -1908,24 +1907,7 @@ function controlStats(){
   const noAmount=real.filter(t=>(parseFloat(t.debit)||0)===0 && (parseFloat(t.credit)||0)===0);
   const noJustif=real.filter(t=>!(t.justif||'').trim());
   const noAdh=real.filter(t=>['ADHESION','LICENCE','ASSURANCE','FORMATION'].includes(t.cat2) && !(t.adherent||'').trim());
-  const seen={};
-  real.forEach(t=>{ const key=[t.date||'',norm(t.libelle||''),Number(t.debit||0).toFixed(2),Number(t.credit||0).toFixed(2)].join('|'); (seen[key]=seen[key]||[]).push(t); });
-  const duplicates=Object.values(seen).filter(a=>a.length>1).flat();
-  return {drafts,unclassified,incoh,noSeason,noAmount,noJustif,noAdh,duplicates};
-}
-function renderDashAttention(){
-  const st=controlStats();
-  const todo=st.drafts.length+st.unclassified.length+st.incoh.length;
-  const card=$('#attentionCard'); if(!card) return;
-  const rows=[
-    ['Brouillons à traiter',st.drafts.length,"go('classer')"],
-    ['Opérations non classées',st.unclassified.length,"go('classer')"],
-    ['Incohérences détectées',st.incoh.length,"go('controls')"],
-    ['Doublons probables',st.duplicates.length,"go('controls')"]
-  ];
-  card.innerHTML=`<h2>Points à traiter${todo?' ('+todo+')':''}</h2><div class="attn-list">`+rows.map(([label,n,act])=>
-    `<div class="attn-item" onclick="${act}"><div><strong>${label}</strong><span>${n?n+' élément(s)':'RAS'}</span></div><span class="pill ${n?'cf':'ca'}">${n}</span></div>`
-  ).join('')+`</div>`;
+  return {drafts,unclassified,incoh,noSeason,noAmount,noJustif,noAdh};
 }
 function controlBlock(title, arr, hint){
   const items=arr.slice(0,25).map(t=>`<div class="attn-item" onclick="openTx('${t.id}','REEL')"><div><strong>${esc(t.libelle||'(sans libellé)')}</strong><span>${fmtDateY(t.date)} · ${esc(t.cat2||'à classer')} ${t.cat3?'· '+esc(t.cat3):''}</span></div><span>${eur(amt(t))}</span></div>`).join('');
@@ -1940,7 +1922,6 @@ function renderControls(){
   controlBlock('Brouillons',st.drafts,'Lignes importées ou ajoutées qui ne sont pas encore passées dans les opérations.')+
   controlBlock('Opérations non classées',st.unclassified,'Lignes réelles sans catégorie exploitable.')+
   controlBlock('Incohérences de classement',st.incoh,'Compte incohérent, sous-catégorie manquante ou débit/crédit simultanés.')+
-  controlBlock('Doublons probables',st.duplicates,'Même date, même libellé et même montant. À vérifier avant suppression.')+
   controlBlock('Saison manquante',st.noSeason,'Une saison vide rend les bilans faux ou incomplets.')+
   controlBlock('Montant nul',st.noAmount,'Débit et crédit à zéro : probablement une erreur de saisie.')+
   controlBlock('Adhérent manquant',st.noAdh,'Catégories liées aux personnes sans adhérent renseigné.')+
