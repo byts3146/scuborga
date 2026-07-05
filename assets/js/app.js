@@ -306,7 +306,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.9.6',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
+const APP_META={name:'Scuborga',version:'0.9.7',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -1916,7 +1916,6 @@ function controlStats(){
 function renderDashAttention(){
   const st=controlStats();
   const todo=st.drafts.length+st.unclassified.length+st.incoh.length;
-  const d=$('#dashDraftCount'); if(d)d.textContent=todo;
   const card=$('#attentionCard'); if(!card) return;
   const rows=[
     ['Brouillons à traiter',st.drafts.length,"go('classer')"],
