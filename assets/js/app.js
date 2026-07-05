@@ -306,7 +306,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.9.5',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
+const APP_META={name:'Scuborga',version:'0.9.6',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -367,13 +367,9 @@ function renderDash(){
   sel.innerHTML=seasons.map(s=>`<option ${s===curSeason()?'selected':''}>${s}</option>`).join('');
   sel.onchange=()=>{Store.data.season=sel.value;Store.save();renderDash();};
   const tx=seasonTx();
-  let prod=0,char=0,unc=0;
-  tx.forEach(t=>{ if(isDraft(t)||isFuture(t))return; if(!isClassified(t)){unc++;return;} const a=amt(t); if(t.typeflux==='PRODUITS')prod+=a; else char+=a; });
-  $('#kProd').textContent=eur(prod);
-  $('#kChar').textContent=eur(char);
+  let prod=0,char=0;
+  tx.forEach(t=>{ if(isDraft(t)||isFuture(t)||!isClassified(t))return; const a=amt(t); if(t.typeflux==='PRODUITS')prod+=a; else char+=a; });
   const res=prod+char;
-  $('#kRes').textContent=eur(res); $('#kRes').style.color=res>=0?'var(--green)':'var(--red)';
-  $('#kUnc').textContent=unc;
   renderDashAttention();
 
   // Soldes de trésorerie = solde réel saisi (Réglages), affiché tel quel (source: relevé bancaire)
@@ -382,15 +378,21 @@ function renderDash(){
   Store.all().forEach(t=>{ if(isDraft(t)||isFuture(t))return; const a=t.account||'CC';
     if(t.date && (!accLast[a]||t.date>accLast[a])) accLast[a]=t.date; });
   const accs=Object.keys(ACCOUNTS).filter(a=>accLast[a]||real[a]!=null);
-  $('#soldesCard').innerHTML=`<h2>Trésorerie</h2>`+accs.map(a=>{
-    const bal=parseFloat(real[a]); const has=!isNaN(bal);
-    const last=accLast[a];
-    return `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--line)">
-      <div><div style="font-weight:600;font-size:14px">${ACCOUNTS[a]}</div>
-        <div class="tag">${last?'maj '+fmtDateFull(last):'—'}</div></div>
-      <div style="font-weight:700;font-size:17px;color:${!has?'var(--muted)':bal>=0?'var(--green)':'var(--red)'}">${has?eur(bal):'à renseigner'}</div>
-    </div>`;
-  }).join('')+`<div class="tag" style="margin-top:8px">Solde réel modifiable dans Paramètres → Soldes des comptes.</div>`;
+  $('#overviewCard').innerHTML=`<h2>Vue d'ensemble</h2>
+    <div style="display:flex;text-align:center;margin-bottom:14px">
+      <div style="flex:1"><div class="tag">Produits</div><div style="font-size:18px;font-weight:700;color:var(--green);margin-top:2px">${eur(prod)}</div></div>
+      <div style="flex:1;border-left:1px solid var(--line)"><div class="tag">Charges</div><div style="font-size:18px;font-weight:700;color:var(--red);margin-top:2px">${eur(char)}</div></div>
+      <div style="flex:1;border-left:1px solid var(--line)"><div class="tag">Résultat</div><div style="font-size:18px;font-weight:700;color:${res>=0?'var(--green)':'var(--red)'};margin-top:2px">${eur(res)}</div></div>
+    </div>`+
+    accs.map(a=>{
+      const bal=parseFloat(real[a]); const has=!isNaN(bal);
+      const last=accLast[a];
+      return `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-top:1px solid var(--line)">
+        <div><div style="font-weight:600;font-size:14px">${ACCOUNTS[a]}</div>
+          <div class="tag">${last?'maj '+fmtDateFull(last):'—'}</div></div>
+        <div style="font-weight:700;font-size:17px;color:${!has?'var(--muted)':bal>=0?'var(--green)':'var(--red)'}">${has?eur(bal):'à renseigner'}</div>
+      </div>`;
+    }).join('')+`<div class="tag" style="margin-top:8px">Solde réel modifiable dans Paramètres → Soldes des comptes.</div>`;
 
   updateBadge();
   // Dernières opérations — toutes saisons, plus récentes d'abord
@@ -1922,7 +1924,7 @@ function renderDashAttention(){
     ['Incohérences détectées',st.incoh.length,"go('controls')"],
     ['Doublons probables',st.duplicates.length,"go('controls')"]
   ];
-  card.innerHTML=`<h2>Points à traiter</h2><div class="attn-list">`+rows.map(([label,n,act])=>
+  card.innerHTML=`<h2>Points à traiter${todo?' ('+todo+')':''}</h2><div class="attn-list">`+rows.map(([label,n,act])=>
     `<div class="attn-item" onclick="${act}"><div><strong>${label}</strong><span>${n?n+' élément(s)':'RAS'}</span></div><span class="pill ${n?'cf':'ca'}">${n}</span></div>`
   ).join('')+`</div>`;
 }

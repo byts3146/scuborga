@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Scuborga · bêta 0.9.5</title>
-<link rel="stylesheet" href="assets/css/style.css?v=0.9.5">
+<title>Scuborga · bêta 0.9.6</title>
+<link rel="stylesheet" href="assets/css/style.css?v=0.9.6">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -30,7 +30,7 @@
         <h1 id="hTitle">Tableau de bord</h1>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-        <span class="version-badge" id="appVersion">bêta 0.9.5</span>
+        <span class="version-badge" id="appVersion">bêta 0.9.6</span>
         <span id="syncBadge" class="sync-ok" onclick="go('param');paramOpen('sync')" style="cursor:pointer">☁︎ Synchronisé</span>
       </div>
     </div>
@@ -38,23 +38,17 @@
 
   <!-- DASHBOARD -->
   <section class="view active" id="v-dash">
-    <div class="card" style="padding:12px;margin-bottom:14px">
-      <label style="font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;display:block;margin-bottom:6px">Saison</label>
-      <select id="seasonSel"></select>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <label style="font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap">Saison</label>
+      <select id="seasonSel" style="flex:1"></select>
     </div>
+    <div class="card" id="overviewCard"></div>
+    <div id="attentionCard" class="card"></div>
     <div class="action-grid">
       <button class="action-card" onclick="go('import')"><strong>📥 Importer un relevé</strong><span>CSV bancaire vers le brouillon</span></button>
       <button class="action-card warn" onclick="go('classer')"><strong>🧾 À classer</strong><span><span id="dashDraftCount">0</span> ligne(s) à traiter</span></button>
       <button class="action-card" onclick="go('controls')"><strong>🔎 Contrôles</strong><span>Doublons, incohérences, champs manquants</span></button>
       <button class="action-card" onclick="downloadBackup()"><strong>💾 Sauvegarder</strong><span>Export local des données</span></button>
-    </div>
-    <div id="attentionCard" class="card"></div>
-    <div id="soldesCard" class="card"></div>
-    <div class="kpis">
-      <div class="kpi"><div class="lab">Produits</div><div class="val" id="kProd" style="color:var(--green)">—</div></div>
-      <div class="kpi"><div class="lab">Charges</div><div class="val" id="kChar" style="color:var(--red)">—</div></div>
-      <div class="kpi"><div class="lab">Résultat</div><div class="val" id="kRes">—</div></div>
-      <div class="kpi"><div class="lab">À classer</div><div class="val" id="kUnc" style="color:var(--amber)">—</div></div>
     </div>
     <div class="card">
       <h2>Dernières opérations</h2>
@@ -175,8 +169,8 @@
 <div class="sheet-bg" id="sheetBg"><div class="sheet" id="sheet"></div></div>
 <div class="toast" id="toast"></div>
 
-<script src="assets/js/data.js?v=0.9.5"></script>
-<script src="assets/js/app.js?v=0.9.5"></script>
+<script src="assets/js/data.js?v=0.9.6"></script>
+<script src="assets/js/app.js?v=0.9.6"></script>
 
 </body>
 </html>
