@@ -21,6 +21,17 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.9.8 — 04/07/2026
+--------------------
+Retrait carte "Points à traiter", retrait doublons, renommage menu.
+1) Suppression de la carte "Points à traiter" de l'Accueil.
+2) Suppression complète de la détection de doublons (demandée) :
+   plus aucune analyse/traitement des doublons dans l'appli
+   (controlStats, page Contrôles).
+3) Renommage du menu "À classer" en "Classer" (onglet de navigation,
+   titre de vue, texte d'aide). Le badge de statut "À classer" sur
+   une opération non classée reste inchangé (notion différente).
+
 v0.9.7 — 04/07/2026
 --------------------
 Retrait des boutons d'actions rapides de l'Accueil.
