@@ -21,6 +21,11 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.10.2 — 04/07/2026
+--------------------
+Correction description obsolète : "Contrôles" mentionnait encore les
+doublons, retirés en v0.9.8.
+
 v0.10.1 — 04/07/2026
 --------------------
 Correction de résidus laissés par la refonte de nav (0.10.0).
