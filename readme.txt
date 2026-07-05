@@ -21,6 +21,17 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.9.7 — 04/07/2026
+--------------------
+Retrait des boutons d'actions rapides de l'Accueil.
+Supprime le bloc de 4 boutons (Importer, À classer, Contrôles,
+Sauvegarder). Chaque action reste accessible sans perte :
+- Importer un relevé → Paramètres → Import/sauvegarde
+- Sauvegarder → Paramètres → Import/sauvegarde
+- Contrôles → Paramètres → Contrôles
+- À classer → onglet dédié dans la barre de navigation (avec badge)
+La carte "Points à traiter" conserve ses propres liens directs.
+
 v0.9.6 — 04/07/2026
 --------------------
 Refonte de la page Accueil.
