@@ -126,6 +126,7 @@ const CloudSync = {
   },
   pushSeq(){ this.pushSetting('seq', Store.data.seq); },
   pushBalances(){ this.pushSetting('realBalances', Store.data.realBalances||{}); },
+  pushMonthlyBalances(){ this.pushSetting('monthlyBalances', Store.data.monthlyBalances||{}); },
 
   // Tables de classification -> table classification_sheets (upsert par nom)
   pushSheet(name){
@@ -306,7 +307,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.10.3',channel:'bêta',storageKey:'scuborga_v0_3_0_beta'};
+const APP_META={name:'Scuborga',version:'0.10.4',channel:'bêta',storageKey:'scuborga_v0_3_0_beta',releaseDate:'04/07/2026'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -318,6 +319,18 @@ function amt(t){ return (t.credit||0) - (t.debit||0); }
 function isClassified(t){ return t.cat1 && t.cat2; }
 
 /* seasons */
+const MONTHS_FR=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+// Une saison "2025-2026" va de septembre 2025 à août 2026. Renvoie les 12
+// dates du 1er du mois, dans l'ordre chronologique.
+function seasonMonths(season){
+  const p=String(season||'').split('-'); const y1=parseInt(p[0],10), y2=parseInt(p[1],10);
+  if(!y1||!y2) return [];
+  const out=[];
+  for(let m=9;m<=12;m++) out.push(`${y1}-${String(m).padStart(2,'0')}-01`);
+  for(let m=1;m<=8;m++) out.push(`${y2}-${String(m).padStart(2,'0')}-01`);
+  return out;
+}
+function monthLabel(key){ const p=String(key).split('-'); return `${MONTHS_FR[parseInt(p[1],10)-1]} ${p[0]}`; }
 function allSeasons(){
   const s=new Set(Store.all().map(t=>t.season).filter(Boolean));
   ['2023-2024','2024-2025','2025-2026','2026-2027'].forEach(x=>s.add(x));
@@ -1692,13 +1705,18 @@ function conflictDismiss(id){
 }
 
 function paramAbout(){
+  const nbOps=(Store.data.tx||[]).filter(t=>!isDraft(t)).length;
+  const nbRules=(Store.data.rules||[]).length;
+  const nbDrafts=draftTx().length;
   $('#paramSubBody').innerHTML=`<h2 style="font-size:16px">À propos de ${APP_META.name}</h2>
-    <p class="note">Application de gestion financière pour association de plongée. Connexion sécurisée active. Les données vivent dans le cloud (Supabase) : elles sont chargées au démarrage et tes saisies y sont renvoyées automatiquement. L'application ne contient plus de données intégrées — le cloud est l'unique source. L'indicateur en haut à droite montre l'état de synchronisation.</p>
+    <p class="note">Application de trésorerie du club, connectée en permanence au cloud (Supabase) : aucune donnée n'est intégrée en dur, tout est chargé au démarrage et resynchronisé automatiquement.</p>
     <div class="about-grid">
-      <div class="about-k"><div class="lab">Application</div><div class="v">${APP_META.name}</div></div>
       <div class="about-k"><div class="lab">Version</div><div class="v">${APP_META.channel} ${APP_META.version}</div></div>
-      <div class="about-k"><div class="lab">Synchro</div><div class="v">Lecture + écriture cloud</div></div>
-      <div class="about-k"><div class="lab">Sauvegarde</div><div class="v">Cloud sécurisé (Supabase)</div></div>
+      <div class="about-k"><div class="lab">Mise à jour</div><div class="v">${APP_META.releaseDate}</div></div>
+      <div class="about-k"><div class="lab">Opérations</div><div class="v">${nbOps}</div></div>
+      <div class="about-k"><div class="lab">Règles de classification</div><div class="v">${nbRules}</div></div>
+      <div class="about-k"><div class="lab">Brouillons en attente</div><div class="v">${nbDrafts}</div></div>
+      <div class="about-k"><div class="lab">Saison en cours</div><div class="v">${curSeason()}</div></div>
     </div>
     <div class="card" style="margin-top:14px">
       <h2 style="font-size:15px">État du cloud</h2>
@@ -1707,8 +1725,10 @@ function paramAbout(){
       <div id="cloudCheckResult" style="margin-top:12px"></div>
     </div>
     <div class="card" style="margin-top:14px">
-      <h2>Limites bêta</h2>
-      <p class="note">L'application nécessite une connexion Internet : les données sont dans le cloud, plus en dur dans le fichier. Si le cloud est injoignable au démarrage, l'appli affiche les données de la dernière session si elles sont en cache, sinon elle invite à recharger. Toutes tes modifications — opérations, tables de classification, règles, soldes et saison — sont renvoyées au cloud en arrière-plan (file d'attente + retry si le réseau manque). Pense à exporter de temps en temps via Paramètres → Import / sauvegarde.</p>
+      <h2 style="font-size:15px">À savoir</h2>
+      <p class="note">• Connexion Internet requise : sans cloud joignable, l'appli retombe sur la dernière session en cache.<br>
+      • Chaque modification est renvoyée au cloud en arrière-plan (file d'attente + nouvelle tentative si le réseau manque).<br>
+      • Pense à exporter une sauvegarde de temps en temps via Paramètres → Import / sauvegarde.</p>
     </div>`;
 }
 
@@ -1862,6 +1882,7 @@ function addRow(sn){ const n=SHEETS[sn].header.length; SHEETS[sn].rows.push(new 
 function persistSheets(){ Store.data.sheets=SHEETS; Store.save(); CloudSync.pushAllSheets(); }
 
 /* --- Soldes d'ouverture --- */
+let mbSeason=null;
 function paramSoldes(){
   const real=Store.data.realBalances||{};
   $('#paramSubBody').innerHTML=`<h2 style="font-size:16px">Soldes des comptes</h2>
@@ -1869,7 +1890,37 @@ function paramSoldes(){
     Object.entries(ACCOUNTS).map(([k,lbl])=>`<div class="field">
       <label>${lbl}</label>
       <input type="number" step="0.01" id="open_${k}" value="${real[k]!=null?real[k]:''}" placeholder="0.00"
-        onchange="setRealBal('${k}',this.value)"></div>`).join('');
+        onchange="setRealBal('${k}',this.value)"></div>`).join('')
+    + `<h2 style="font-size:16px;margin-top:22px">Soldes de début de mois</h2>
+    <p class="note">Renseigne, pour chaque mois, le solde de chaque compte au relevé bancaire. Cela permet ensuite de vérifier dans Contrôles que les mouvements enregistrés reconstituent bien le solde du mois suivant.</p>
+    <div class="field"><label>Saison</label><select id="mbSeasonSel"></select></div>
+    <div id="mbBody"></div>`;
+  renderMonthlyBalances();
+}
+function renderMonthlyBalances(){
+  const sel=$('#mbSeasonSel'); if(!sel) return;
+  if(!sel.dataset.init){ sel.dataset.init='1'; sel.onchange=()=>{ mbSeason=sel.value; renderMonthlyBalances(); }; }
+  const seasons=allSeasons();
+  if(!mbSeason) mbSeason=curSeason();
+  sel.innerHTML=seasons.map(s=>`<option ${s===mbSeason?'selected':''}>${s}</option>`).join('');
+  sel.value=mbSeason;
+  const months=seasonMonths(mbSeason);
+  const mb=Store.data.monthlyBalances||{};
+  $('#mbBody').innerHTML=Object.entries(ACCOUNTS).map(([k,lbl])=>{
+    const acc=mb[k]||{};
+    const rows=months.map(mk=>`<div class="field" style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <label style="flex:1;margin:0">${monthLabel(mk)}</label>
+      <input type="number" step="0.01" style="flex:0 0 130px" value="${acc[mk]!=null?acc[mk]:''}" placeholder="—"
+        onchange="setMonthlyBal('${k}','${mk}',this.value)"></div>`).join('');
+    return `<div class="card" style="margin-bottom:12px"><div style="font-weight:600;font-size:14px;margin-bottom:8px">${lbl}</div>${rows}</div>`;
+  }).join('');
+}
+function setMonthlyBal(k,mk,v){
+  Store.data.monthlyBalances=Store.data.monthlyBalances||{};
+  Store.data.monthlyBalances[k]=Store.data.monthlyBalances[k]||{};
+  const n=parseFloat(v);
+  if(isNaN(n)) delete Store.data.monthlyBalances[k][mk]; else Store.data.monthlyBalances[k][mk]=n;
+  Store.save(); CloudSync.pushMonthlyBalances(); toast('Solde enregistré');
 }
 function setRealBal(k,v){ Store.data.realBalances=Store.data.realBalances||{};
   Store.data.realBalances[k]=parseFloat(v); if(isNaN(Store.data.realBalances[k]))delete Store.data.realBalances[k];
@@ -1887,28 +1938,72 @@ function paramIO(){
 
 
 /* ============ ERGONOMIE v0.3.0 ============ */
-function controlStats(){
-  const all=Store.all();
+function controlStats(season){
+  const inSeason=t=>!season||t.season===season;
+  const all=Store.all().filter(inSeason);
   const real=all.filter(t=>!isDraft(t)&&!isFuture(t));
-  const drafts=draftTx();
-  const unclassified=unclassifiedTx();
-  const incoh=incoherentTx();
+  const drafts=draftTx().filter(inSeason);
+  const unclassified=unclassifiedTx().filter(inSeason);
+  const incoh=incoherentTx().filter(inSeason);
   const noSeason=real.filter(t=>!(t.season||'').trim());
   const noAmount=real.filter(t=>(parseFloat(t.debit)||0)===0 && (parseFloat(t.credit)||0)===0);
   const noJustif=real.filter(t=>!(t.justif||'').trim());
   const noAdh=real.filter(t=>['ADHESION','LICENCE','ASSURANCE','FORMATION'].includes(t.cat2) && !(t.adherent||'').trim());
   return {drafts,unclassified,incoh,noSeason,noAmount,noJustif,noAdh};
 }
+// Vérifie que solde(mois N) + mouvements réels du mois N = solde(mois N+1),
+// pour chaque compte, sur les 11 transitions de la saison sélectionnée.
+function monthlyBalanceChecks(season){
+  const months=seasonMonths(season);
+  const mb=Store.data.monthlyBalances||{};
+  const out=[]; let incomplete=0;
+  Object.keys(ACCOUNTS).forEach(acc=>{
+    const bal=mb[acc]||{};
+    for(let i=0;i<months.length-1;i++){
+      const from=months[i], to=months[i+1];
+      const balFrom=bal[from], balTo=bal[to];
+      if(balFrom==null || balTo==null){ incomplete++; continue; }
+      const moved=Store.all().filter(t=>!isDraft(t)&&!isFuture(t)&&(t.account||'CC')===acc&&t.date>=from&&t.date<to)
+        .reduce((s,t)=>s+amt(t),0);
+      const expected=balFrom+moved;
+      const diff=Math.round((balTo-expected)*100)/100;
+      if(Math.abs(diff)>0.01) out.push({acc,from,to,balFrom,balTo,moved,expected,diff});
+    }
+  });
+  return {mismatches:out, incomplete};
+}
 function controlBlock(title, arr, hint){
   const items=arr.slice(0,25).map(t=>`<div class="attn-item" onclick="openTx('${t.id}','REEL')"><div><strong>${esc(t.libelle||'(sans libellé)')}</strong><span>${fmtDateY(t.date)} · ${esc(t.cat2||'à classer')} ${t.cat3?'· '+esc(t.cat3):''}</span></div><span>${eur(amt(t))}</span></div>`).join('');
   return `<details class="grp" ${arr.length?'open':''}><summary><span>${title}</span><span class="tag">${arr.length}</span></summary><div class="body"><p class="note">${hint}</p>${items||'<div class="empty" style="padding:18px">RAS</div>'}${arr.length>25?`<div class="tag" style="margin-top:8px">25 premières lignes affichées.</div>`:''}</div></details>`;
 }
+let ctrlSeason=null;
 function renderControls(){
-  const st=controlStats();
+  const sel=$('#ctrlSeasonSel');
+  if(sel){
+    if(!sel.dataset.init){ sel.dataset.init='1'; sel.onchange=()=>{ ctrlSeason=sel.value||null; renderControls(); }; }
+    if(ctrlSeason===null) ctrlSeason=curSeason();
+    const seasons=allSeasons();
+    sel.innerHTML='<option value="">Toutes les saisons</option>'+seasons.map(s=>`<option value="${s}" ${s===ctrlSeason?'selected':''}>${s}</option>`).join('');
+    sel.value=ctrlSeason||'';
+  }
+  const st=controlStats(ctrlSeason);
+  let balHtml='';
+  if(ctrlSeason){
+    const mbc=monthlyBalanceChecks(ctrlSeason);
+    const rows=mbc.mismatches.map(m=>`<div class="attn-item"><div><strong>${ACCOUNTS[m.acc]} — ${monthLabel(m.from)} → ${monthLabel(m.to)}</strong>
+      <span>Attendu ${eur(m.expected)} (solde ${eur(m.balFrom)} + mouvements ${eur(m.moved)}) — saisi ${eur(m.balTo)}</span></div>
+      <span class="pill cv">${m.diff>0?'+':''}${eur(m.diff)}</span></div>`).join('');
+    balHtml=`<details class="grp" ${mbc.mismatches.length?'open':''}><summary><span>Cohérence des soldes de début de mois</span><span class="tag">${mbc.mismatches.length}</span></summary>
+      <div class="body"><p class="note">Vérifie que solde(mois N) + mouvements réels du mois = solde(mois N+1), pour chaque compte. ${mbc.incomplete?mbc.incomplete+' transition(s) non vérifiable(s) par manque de solde saisi (voir Paramètres → Soldes des comptes).':''}</p>
+      ${rows||'<div class="empty" style="padding:18px">RAS</div>'}</div></details>`;
+  } else {
+    balHtml=`<div class="card"><p class="note">Sélectionne une saison précise pour vérifier la cohérence des soldes de début de mois.</p></div>`;
+  }
   $('#controlsBody').innerHTML=`<div class="kpis">
     <div class="kpi"><div class="lab">Brouillons</div><div class="val" style="color:var(--amber)">${st.drafts.length}</div></div>
     <div class="kpi"><div class="lab">Incohérences</div><div class="val" style="color:var(--red)">${st.incoh.length}</div></div>
   </div>`+
+  balHtml+
   controlBlock('Brouillons',st.drafts,'Lignes importées ou ajoutées qui ne sont pas encore passées dans les opérations.')+
   controlBlock('Opérations non classées',st.unclassified,'Lignes réelles sans catégorie exploitable.')+
   controlBlock('Incohérences de classement',st.incoh,'Compte incohérent, sous-catégorie manquante ou débit/crédit simultanés.')+
@@ -2014,6 +2109,7 @@ async function loadFromCloud(){
     // Réglages
     (setRows||[]).forEach(row=>{
       if(row.key==='realBalances') Store.data.realBalances = row.value;
+      else if(row.key==='monthlyBalances') Store.data.monthlyBalances = row.value;
       else if(row.key==='seq') Store.data.seq = Number(row.value)||Store.data.seq;
       else if(row.key==='defaultSeason') Store.data.defaultSeason = row.value || null;
     });
