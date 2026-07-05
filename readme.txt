@@ -21,6 +21,23 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.10.0 — 04/07/2026
+--------------------
+Refonte complète de la navigation principale.
+Nouvelle structure de menus (6 onglets) : Opérations, Saisie,
+Adhérents, Sorties, Bilan, Paramètres.
+- Suppression de l'onglet "Accueil" (tableau de bord) : contenu
+  perdu, décision explicite de Franck.
+- Renommage "Classer" → "Saisie" (contenu strictement inchangé).
+- Renommage "Bilans" → "Bilan" (singulier), qui ne contient plus que
+  Résultat + Analyse CA/CV/CF.
+- Extraction des sous-onglets "Adhérents" et "Sorties" du Bilan :
+  deviennent chacun un onglet de navigation à part entière, avec
+  leur propre sélecteur de saison (saison partagée avec le Bilan).
+- "Opérations" devient la vue par défaut au démarrage.
+- Nav légèrement réduite (police/icônes) pour accueillir 6 boutons
+  sans débordement sur petit écran.
+
 v0.9.8 — 04/07/2026
 --------------------
 Retrait carte "Points à traiter", retrait doublons, renommage menu.
