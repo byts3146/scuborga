@@ -21,6 +21,14 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.10.1 — 04/07/2026
+--------------------
+Correction de résidus laissés par la refonte de nav (0.10.0).
+- Titre statique par défaut de l'en-tête ("Tableau de bord") mis à
+  jour vers "Opérations".
+- Texte d'aide de "Soldes des comptes" qui mentionnait encore
+  l'ancien onglet Accueil (supprimé) : reformulé.
+
 v0.10.0 — 04/07/2026
 --------------------
 Refonte complète de la navigation principale.
