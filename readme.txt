@@ -21,6 +21,21 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.9.6 — 04/07/2026
+--------------------
+Refonte de la page Accueil.
+- Sélecteur de saison allégé (simple ligne, plus de carte dédiée)
+- Fusion de "Trésorerie" et des 4 KPIs en une seule carte
+  "Vue d'ensemble" : Produits/Charges/Résultat en ligne, soldes
+  réels CC/EP juste en dessous
+- Suppression du KPI "À classer" : il affichait un compte différent
+  (limité à la saison) du bouton d'action et de la carte "Points à
+  traiter" (tous deux sur historique complet) — 3 chiffres
+  différents pour la même notion. Une seule source de vérité
+  désormais, reprise dans le titre "Points à traiter (N)"
+- Nouvel ordre : saison → vue d'ensemble → points à traiter →
+  actions rapides → dernières opérations
+
 v0.9.5 — 04/07/2026
 --------------------
 Boutons de compte simplifiés (CC/EP) à côté de Filtres.
