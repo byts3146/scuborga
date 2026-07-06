@@ -21,6 +21,18 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.10.5 — 04/07/2026
+--------------------
+Soldes mensuels = fin de mois (au lieu de début).
+La valeur saisie dans "Soldes de fin de mois" représente désormais
+le solde au dernier jour du mois, et non plus au 1er.
+- Renommage "Soldes de début de mois" → "Soldes de fin de mois"
+- Affichage précis ("30 Septembre 2025" au lieu de "Septembre 2025")
+- Contrôle de cohérence recalculé : solde fin-de-mois(N) + mouvements
+  réels du mois N+1 = solde fin-de-mois(N+1) — la fenêtre de
+  mouvements se décale d'un mois par rapport à la v0.10.4.
+- Stockage inchangé (clé YYYY-MM-01), seule l'interprétation change.
+
 v0.10.4 — 04/07/2026
 --------------------
 Boutons retour, soldes mensuels par saison, contrôle de cohérence,
