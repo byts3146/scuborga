@@ -307,7 +307,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.10.4',channel:'bêta',storageKey:'scuborga_v0_3_0_beta',releaseDate:'04/07/2026'};
+const APP_META={name:'Scuborga',version:'0.10.5',channel:'bêta',storageKey:'scuborga_v0_3_0_beta',releaseDate:'04/07/2026'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -331,6 +331,14 @@ function seasonMonths(season){
   return out;
 }
 function monthLabel(key){ const p=String(key).split('-'); return `${MONTHS_FR[parseInt(p[1],10)-1]} ${p[0]}`; }
+function lastDayOfMonth(key){ const p=String(key).split('-'); return new Date(parseInt(p[0],10), parseInt(p[1],10), 0).getDate(); }
+function monthEndLabel(key){ const p=String(key).split('-'); return `${lastDayOfMonth(key)} ${MONTHS_FR[parseInt(p[1],10)-1]} ${p[0]}`; }
+// Renvoie le 1er du mois suivant celui de 'key' (YYYY-MM-01).
+function addMonthKey(key){
+  const p=String(key).split('-'); let y=parseInt(p[0],10), m=parseInt(p[1],10)+1;
+  if(m>12){ m=1; y++; }
+  return `${y}-${String(m).padStart(2,'0')}-01`;
+}
 function allSeasons(){
   const s=new Set(Store.all().map(t=>t.season).filter(Boolean));
   ['2023-2024','2024-2025','2025-2026','2026-2027'].forEach(x=>s.add(x));
@@ -1891,8 +1899,8 @@ function paramSoldes(){
       <label>${lbl}</label>
       <input type="number" step="0.01" id="open_${k}" value="${real[k]!=null?real[k]:''}" placeholder="0.00"
         onchange="setRealBal('${k}',this.value)"></div>`).join('')
-    + `<h2 style="font-size:16px;margin-top:22px">Soldes de début de mois</h2>
-    <p class="note">Renseigne, pour chaque mois, le solde de chaque compte au relevé bancaire. Cela permet ensuite de vérifier dans Contrôles que les mouvements enregistrés reconstituent bien le solde du mois suivant.</p>
+    + `<h2 style="font-size:16px;margin-top:22px">Soldes de fin de mois</h2>
+    <p class="note">Renseigne, pour chaque mois, le solde de chaque compte au dernier jour du mois (relevé bancaire). Cela permet ensuite de vérifier dans Contrôles que les mouvements du mois suivant reconstituent bien le solde de fin de mois suivant.</p>
     <div class="field"><label>Saison</label><select id="mbSeasonSel"></select></div>
     <div id="mbBody"></div>`;
   renderMonthlyBalances();
@@ -1909,7 +1917,7 @@ function renderMonthlyBalances(){
   $('#mbBody').innerHTML=Object.entries(ACCOUNTS).map(([k,lbl])=>{
     const acc=mb[k]||{};
     const rows=months.map(mk=>`<div class="field" style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-      <label style="flex:1;margin:0">${monthLabel(mk)}</label>
+      <label style="flex:1;margin:0">${monthEndLabel(mk)}</label>
       <input type="number" step="0.01" style="flex:0 0 130px" value="${acc[mk]!=null?acc[mk]:''}" placeholder="—"
         onchange="setMonthlyBal('${k}','${mk}',this.value)"></div>`).join('');
     return `<div class="card" style="margin-bottom:12px"><div style="font-weight:600;font-size:14px;margin-bottom:8px">${lbl}</div>${rows}</div>`;
@@ -1951,8 +1959,9 @@ function controlStats(season){
   const noAdh=real.filter(t=>['ADHESION','LICENCE','ASSURANCE','FORMATION'].includes(t.cat2) && !(t.adherent||'').trim());
   return {drafts,unclassified,incoh,noSeason,noAmount,noJustif,noAdh};
 }
-// Vérifie que solde(mois N) + mouvements réels du mois N = solde(mois N+1),
-// pour chaque compte, sur les 11 transitions de la saison sélectionnée.
+// Vérifie que solde fin-de-mois(N) + mouvements réels du mois N+1 =
+// solde fin-de-mois(N+1), pour chaque compte, sur les 11 transitions
+// de la saison sélectionnée.
 function monthlyBalanceChecks(season){
   const months=seasonMonths(season);
   const mb=Store.data.monthlyBalances||{};
@@ -1960,14 +1969,17 @@ function monthlyBalanceChecks(season){
   Object.keys(ACCOUNTS).forEach(acc=>{
     const bal=mb[acc]||{};
     for(let i=0;i<months.length-1;i++){
-      const from=months[i], to=months[i+1];
-      const balFrom=bal[from], balTo=bal[to];
+      const mFrom=months[i], mTo=months[i+1];
+      const balFrom=bal[mFrom], balTo=bal[mTo];
       if(balFrom==null || balTo==null){ incomplete++; continue; }
-      const moved=Store.all().filter(t=>!isDraft(t)&&!isFuture(t)&&(t.account||'CC')===acc&&t.date>=from&&t.date<to)
+      // Mouvements du mois "mTo" (celui dont on vérifie la fin), du 1er
+      // de ce mois jusqu'au 1er du mois suivant.
+      const rangeStart=mTo, rangeEnd=addMonthKey(mTo);
+      const moved=Store.all().filter(t=>!isDraft(t)&&!isFuture(t)&&(t.account||'CC')===acc&&t.date>=rangeStart&&t.date<rangeEnd)
         .reduce((s,t)=>s+amt(t),0);
       const expected=balFrom+moved;
       const diff=Math.round((balTo-expected)*100)/100;
-      if(Math.abs(diff)>0.01) out.push({acc,from,to,balFrom,balTo,moved,expected,diff});
+      if(Math.abs(diff)>0.01) out.push({acc,from:mFrom,to:mTo,balFrom,balTo,moved,expected,diff});
     }
   });
   return {mismatches:out, incomplete};
@@ -1990,14 +2002,14 @@ function renderControls(){
   let balHtml='';
   if(ctrlSeason){
     const mbc=monthlyBalanceChecks(ctrlSeason);
-    const rows=mbc.mismatches.map(m=>`<div class="attn-item"><div><strong>${ACCOUNTS[m.acc]} — ${monthLabel(m.from)} → ${monthLabel(m.to)}</strong>
-      <span>Attendu ${eur(m.expected)} (solde ${eur(m.balFrom)} + mouvements ${eur(m.moved)}) — saisi ${eur(m.balTo)}</span></div>
+    const rows=mbc.mismatches.map(m=>`<div class="attn-item"><div><strong>${ACCOUNTS[m.acc]} — fin ${monthEndLabel(m.from)} → fin ${monthEndLabel(m.to)}</strong>
+      <span>Attendu ${eur(m.expected)} (solde ${eur(m.balFrom)} + mouvements de ${monthLabel(m.to)} ${eur(m.moved)}) — saisi ${eur(m.balTo)}</span></div>
       <span class="pill cv">${m.diff>0?'+':''}${eur(m.diff)}</span></div>`).join('');
-    balHtml=`<details class="grp" ${mbc.mismatches.length?'open':''}><summary><span>Cohérence des soldes de début de mois</span><span class="tag">${mbc.mismatches.length}</span></summary>
-      <div class="body"><p class="note">Vérifie que solde(mois N) + mouvements réels du mois = solde(mois N+1), pour chaque compte. ${mbc.incomplete?mbc.incomplete+' transition(s) non vérifiable(s) par manque de solde saisi (voir Paramètres → Soldes des comptes).':''}</p>
+    balHtml=`<details class="grp" ${mbc.mismatches.length?'open':''}><summary><span>Cohérence des soldes de fin de mois</span><span class="tag">${mbc.mismatches.length}</span></summary>
+      <div class="body"><p class="note">Vérifie que solde de fin de mois(N) + mouvements réels du mois N+1 = solde de fin de mois(N+1), pour chaque compte. ${mbc.incomplete?mbc.incomplete+' transition(s) non vérifiable(s) par manque de solde saisi (voir Paramètres → Soldes des comptes).':''}</p>
       ${rows||'<div class="empty" style="padding:18px">RAS</div>'}</div></details>`;
   } else {
-    balHtml=`<div class="card"><p class="note">Sélectionne une saison précise pour vérifier la cohérence des soldes de début de mois.</p></div>`;
+    balHtml=`<div class="card"><p class="note">Sélectionne une saison précise pour vérifier la cohérence des soldes de fin de mois.</p></div>`;
   }
   $('#controlsBody').innerHTML=`<div class="kpis">
     <div class="kpi"><div class="lab">Brouillons</div><div class="val" style="color:var(--amber)">${st.drafts.length}</div></div>
