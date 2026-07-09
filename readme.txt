@@ -21,6 +21,22 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.11.0 — 04/07/2026
+--------------------
+Sélection multiple (Opérations) + formules dans le montant (Saisie).
+1) Nouveau bouton "☑" dans Opérations : mode sélection avec case à
+   cocher par ligne, barre récap (nombre sélectionné + somme), case
+   "Tout". Le tap sur la ligne continue d'ouvrir l'édition ; seule
+   la case sélectionne. Drag-to-reorder désactivé pendant la
+   sélection.
+2) Le champ Montant (Saisie) accepte une formule commençant par "="
+   (ex: "=48,5-20" → 28,50), en plus d'un nombre simple avec virgule
+   ou point. Résultat affiché après validation (blur). Enregistrement
+   bloqué avec message clair si la formule est invalide.
+   Point d'attention : sur certains claviers mobiles en mode
+   numérique restreint, le caractère "=" n'est pas toujours
+   disponible — à vérifier en conditions réelles.
+
 v0.10.5 — 04/07/2026
 --------------------
 Soldes mensuels = fin de mois (au lieu de début).
