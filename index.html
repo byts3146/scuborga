@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Scuborga · bêta 0.11.0</title>
-<link rel="stylesheet" href="assets/css/style.css?v=0.11.0">
+<title>Scuborga · bêta 0.11.1</title>
+<link rel="stylesheet" href="assets/css/style.css?v=0.11.1">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -30,7 +30,7 @@
         <h1 id="hTitle">Opérations</h1>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-        <span class="version-badge" id="appVersion">bêta 0.11.0</span>
+        <span class="version-badge" id="appVersion">bêta 0.11.1</span>
         <span id="syncBadge" class="sync-ok" onclick="go('param');paramOpen('sync')" style="cursor:pointer">☁︎ Synchronisé</span>
       </div>
     </div>
@@ -89,14 +89,13 @@
       <div class="filterbar" id="acctChips" style="margin:0;flex:0 0 auto"></div>
       <button class="btn sec sm" style="flex:1" onclick="openFilters()">⚙︎ Filtres<span id="filterCount"></span></button>
       <button class="btn ghost sm" id="btnResetFilters" style="flex:0 0 auto" onclick="clearFilters()">Réinitialiser</button>
-      <button class="btn ghost sm" id="btnOpsSelMode" style="flex:0 0 auto" onclick="toggleOpsSelMode()">☑</button>
     </div>
     <div id="opsSelActions" class="draftbar" style="display:none">
       <label class="selall"><input type="checkbox" id="opsSelAll" onchange="toggleAllOpsSel(this.checked)"> Tout</label>
       <span id="opsSelCount" class="tag"></span>
       <span id="opsSelSum" class="tag" style="font-weight:700"></span>
       <span style="flex:1"></span>
-      <button class="btn ghost sm" onclick="exitOpsSelMode()">Terminé</button>
+      <button class="btn ghost sm" onclick="clearOpsSel()">Désélectionner</button>
     </div>
     <div id="futureZone"></div>
     <div id="opsBalNote"></div>
@@ -178,8 +177,8 @@
 <div class="sheet-bg" id="sheetBg"><div class="sheet" id="sheet"></div></div>
 <div class="toast" id="toast"></div>
 
-<script src="assets/js/data.js?v=0.11.0"></script>
-<script src="assets/js/app.js?v=0.11.0"></script>
+<script src="assets/js/data.js?v=0.11.1"></script>
+<script src="assets/js/app.js?v=0.11.1"></script>
 
 </body>
 </html>

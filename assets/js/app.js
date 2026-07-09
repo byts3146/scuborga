@@ -307,7 +307,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.11.0',channel:'bêta',storageKey:'scuborga_v0_3_0_beta',releaseDate:'04/07/2026'};
+const APP_META={name:'Scuborga',version:'0.11.1',channel:'bêta',storageKey:'scuborga_v0_3_0_beta',releaseDate:'04/07/2026'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -428,11 +428,10 @@ function isDraft(t){ return t.status==='draft'; }
 function txRow(t,opts){
   opts=opts||{};
   const a=amt(t); const prev=isFuture(t);
-  const handle = opts.drag ? `<div class="draghandle" title="Glisser pour réordonner" onclick="event.stopPropagation()">⠿</div>` : '';
   const check = opts.selectable ? `<input type="checkbox" class="selcheck" ${opts.selected?'checked':''} onclick="event.stopPropagation();toggleOpsRow('${t.id}',this.checked)">` : '';
   const running = (opts.running!=null) ? `<div class="run">${eur(opts.running)}</div>` : '';
-  return `<div class="tx ${isClassified(t)?'':'unclassified'} ${opts.selected?'sel':''}" data-id="${t.id}" ${opts.drag?'draggable="true"':''}>
-    ${check}${handle}
+  return `<div class="tx ${isClassified(t)?'':'unclassified'} ${opts.selected?'sel':''}" data-id="${t.id}">
+    ${check}
     <div class="grow">
       <div class="lib">${esc(t.libelle||'(sans libellé)')}</div>
       <div class="meta">
@@ -1145,19 +1144,12 @@ function renderOps(){
       note.innerHTML=`<div class="tag" style="margin-bottom:8px">Renseigne le solde de ce compte dans Paramètres pour voir le solde cumulé.</div>`;
     }
   } else {
-    note.innerHTML=`<div class="tag" style="margin-bottom:8px">Glisse ⠿ pour réordonner. Sélectionne un seul compte pour voir le solde cumulé.</div>`;
+    note.innerHTML=`<div class="tag" style="margin-bottom:8px">Sélectionne un seul compte pour voir le solde cumulé.</div>`;
   }
 
-  $('#opsList').innerHTML=list.length?list.map(t=>txRow(t,{running:runningById[t.id],drag:!opsSelMode,selectable:opsSelMode,selected:opsSel.has(t.id)})).join(''):
+  $('#opsList').innerHTML=list.length?list.map(t=>txRow(t,{running:runningById[t.id],selectable:true,selected:opsSel.has(t.id)})).join(''):
     (futures.length?'':'<div class="empty">Aucun résultat</div>');
-  if(opsSelMode){
-    // en mode sélection, retire le drag-reorder (incompatible) ; le clic sur la
-    // ligne ouvre toujours l'édition, seule la case à cocher sélectionne.
-    attachTxClicks('#opsList');
-  } else {
-    attachTxClicks('#opsList');
-    enableDrag('#opsList');
-  }
+  attachTxClicks('#opsList');
   updateOpsSelBar();
 
   const c=activeFilterCount();
@@ -1175,14 +1167,8 @@ function setOpsAccount(a){ opsAccount = (opsAccount===a) ? null : a; renderOps()
 function clearFilters(){ opsFilters={}; opsAccount=null; $('#opsSearch').value=''; renderOps(); }
 
 /* --- Sélection multiple (Opérations) --- */
-let opsSelMode=false, opsSel=new Set();
-function toggleOpsSelMode(){
-  opsSelMode=!opsSelMode;
-  if(!opsSelMode) opsSel=new Set();
-  const btn=$('#btnOpsSelMode'); if(btn) btn.classList.toggle('on',opsSelMode);
-  renderOps();
-}
-function exitOpsSelMode(){ opsSelMode=false; opsSel=new Set(); const btn=$('#btnOpsSelMode'); if(btn) btn.classList.remove('on'); renderOps(); }
+let opsSel=new Set();
+function clearOpsSel(){ opsSel=new Set(); renderOps(); }
 function toggleOpsRow(id,on){
   if(on) opsSel.add(id); else opsSel.delete(id);
   const row=document.querySelector(`#opsList .tx[data-id="${id}"]`); if(row) row.classList.toggle('sel',on);
@@ -1195,37 +1181,14 @@ function toggleAllOpsSel(on){
 }
 function updateOpsSelBar(){
   const bar=$('#opsSelActions'); if(!bar) return;
-  bar.style.display=opsSelMode?'flex':'none';
-  if(!opsSelMode) return;
-  const total=document.querySelectorAll('#opsList .tx').length, n=opsSel.size;
-  $('#opsSelCount').textContent=n?`${n} sélectionnée(s)`:'0 sélectionnée';
+  const n=opsSel.size;
+  bar.style.display=n?'flex':'none';
+  if(!n) return;
+  const total=document.querySelectorAll('#opsList .tx').length;
+  $('#opsSelCount').textContent=`${n} sélectionnée(s)`;
   const sum=[...opsSel].reduce((s,id)=>{ const t=Store.all().find(x=>x.id===id); return s+(t?amt(t):0); },0);
   $('#opsSelSum').textContent=`Somme : ${eur(sum)}`;
   const all=$('#opsSelAll'); if(all){ all.checked=n>0&&n===total; all.indeterminate=n>0&&n<total; }
-}
-
-/* Drag & drop pour réordonner manuellement */
-let dragId=null;
-function enableDrag(sel){
-  const cont=document.querySelector(sel); if(!cont)return;
-  cont.querySelectorAll('.tx[draggable]').forEach(el=>{
-    el.addEventListener('dragstart',e=>{ dragId=el.dataset.id; el.style.opacity='.4'; });
-    el.addEventListener('dragend',e=>{ el.style.opacity=''; });
-    el.addEventListener('dragover',e=>{ e.preventDefault(); });
-    el.addEventListener('drop',e=>{ e.preventDefault(); dropOn(el.dataset.id); });
-  });
-}
-function dropOn(targetId){
-  if(!dragId || dragId===targetId) return;
-  // construire l'ordre courant visible puis déplacer dragId avant targetId
-  const visible=orderedList(Store.all().filter(t=>!isFuture(t)).filter(opsMatch)).map(t=>t.id);
-  const from=visible.indexOf(dragId), to=visible.indexOf(targetId);
-  if(from<0||to<0)return;
-  visible.splice(from,1); visible.splice(visible.indexOf(targetId),0,dragId);
-  // fusionner avec l'ordre manuel global existant
-  const others=(Store.data.manualOrder||[]).filter(id=>!visible.includes(id));
-  Store.data.manualOrder=[...visible,...others];
-  Store.save(); dragId=null; renderOps(); toast('Ordre mis à jour');
 }
 
 /* Filter sheet: one collapsible per column with distinct values + counts */
