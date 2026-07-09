@@ -45,6 +45,7 @@ header{position:sticky;top:0;z-index:30;background:rgba(245,246,248,.90);
 .btn:active{opacity:.7}
 .btn.sec{background:var(--surface2);border:1px solid var(--line);color:var(--text)}
 .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--muted)}
+.btn.ghost.on{background:var(--accent);border-color:var(--accent);color:#fff}
 .btn.sm{padding:9px 12px;width:auto;display:inline-block;font-size:13px}
 .row{display:flex;gap:10px}
 .row>*{flex:1}
@@ -176,6 +177,8 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 .draftrow .drcheck{width:auto;flex:0 0 auto}
 .draftrow.sel{border-color:var(--accent);background:rgba(37,99,235,.06)}
 .draftrow .grow{cursor:pointer}
+.tx.sel{border-color:var(--accent);background:rgba(37,99,235,.06)}
+.tx .selcheck{width:auto;flex:0 0 auto;margin-right:2px}
 #classerList .tx .lib{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #classerList .tx .meta{margin-top:2px;font-size:10.5px;gap:5px 6px;flex-wrap:wrap;align-items:center}
 .combo{position:relative}

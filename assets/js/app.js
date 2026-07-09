@@ -307,7 +307,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.10.5',channel:'bêta',storageKey:'scuborga_v0_3_0_beta',releaseDate:'04/07/2026'};
+const APP_META={name:'Scuborga',version:'0.11.0',channel:'bêta',storageKey:'scuborga_v0_3_0_beta',releaseDate:'04/07/2026'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -429,9 +429,10 @@ function txRow(t,opts){
   opts=opts||{};
   const a=amt(t); const prev=isFuture(t);
   const handle = opts.drag ? `<div class="draghandle" title="Glisser pour réordonner" onclick="event.stopPropagation()">⠿</div>` : '';
+  const check = opts.selectable ? `<input type="checkbox" class="selcheck" ${opts.selected?'checked':''} onclick="event.stopPropagation();toggleOpsRow('${t.id}',this.checked)">` : '';
   const running = (opts.running!=null) ? `<div class="run">${eur(opts.running)}</div>` : '';
-  return `<div class="tx ${isClassified(t)?'':'unclassified'}" data-id="${t.id}" ${opts.drag?'draggable="true"':''}>
-    ${handle}
+  return `<div class="tx ${isClassified(t)?'':'unclassified'} ${opts.selected?'sel':''}" data-id="${t.id}" ${opts.drag?'draggable="true"':''}>
+    ${check}${handle}
     <div class="grow">
       <div class="lib">${esc(t.libelle||'(sans libellé)')}</div>
       <div class="meta">
@@ -592,7 +593,7 @@ function openTx(id,kind){
     <div class="field"><label>Montant</label>
       <div class="amount-row">
         <button type="button" id="fSign" class="sign-btn" onclick="toggleSign()">−</button>
-        <input id="fAmount" type="number" step="0.01" inputmode="decimal" placeholder="0.00" style="flex:1">
+        <input id="fAmount" type="text" inputmode="decimal" placeholder="0.00 ou =48,5-20" style="flex:1" onblur="normalizeAmountField()">
       </div>
       <div id="amountHint" class="amount-hint">Sortie (débit)</div>
     </div>
@@ -665,7 +666,7 @@ function initAmountField(t){
     val='';
   }
   _amountSign=sign;
-  const inp=$('#fAmount'); if(inp) inp.value = (val===''?'':Math.abs(val));
+  const inp=$('#fAmount'); if(inp) inp.value = (val===''?'':Math.abs(val).toFixed(2).replace('.',','));
   updateSignUI();
 }
 function toggleSign(){ _amountSign = -_amountSign; updateSignUI();
@@ -679,9 +680,37 @@ function updateSignUI(){
   else { btn.textContent='−'; btn.className='sign-btn minus'; if(hint){hint.textContent='Sortie (débit)'; hint.className='amount-hint minus';} }
 }
 function readAmount(){
-  const raw=parseFloat($('#fAmount') ? $('#fAmount').value : '')||0;
-  const v=Math.abs(raw);
-  return _amountSign>0 ? {debit:0, credit:v} : {debit:v, credit:0};
+  const raw=$('#fAmount') ? $('#fAmount').value : '';
+  const v=evalAmountExpr(raw);
+  const val=(v==null||isNaN(v))?0:Math.abs(v);
+  return _amountSign>0 ? {debit:0, credit:val} : {debit:val, credit:0};
+}
+// Évalue le champ Montant : nombre simple (avec virgule ou point), ou formule
+// si le texte commence par '=' (ex: "=48,5-20"). Renvoie null si vide,
+// NaN si invalide, sinon un nombre.
+function evalAmountExpr(raw){
+  let s=String(raw||'').trim();
+  if(!s) return null;
+  const isFormula=s.startsWith('=');
+  if(isFormula) s=s.slice(1);
+  s=s.replace(/,/g,'.').replace(/\s+/g,'');
+  if(!s) return null;
+  if(isFormula){
+    if(!/^[0-9+\-*/().]+$/.test(s)) return NaN; // caractères non autorisés : formule refusée
+    try{ const v=Function('"use strict";return ('+s+')')(); return (typeof v==='number' && isFinite(v)) ? v : NaN; }
+    catch(e){ return NaN; }
+  }
+  const v=parseFloat(s);
+  return isNaN(v) ? NaN : v;
+}
+// Au blur du champ Montant : calcule le résultat (formule ou virgule) et
+// remplace l'affichage par le nombre normalisé, à la française.
+function normalizeAmountField(){
+  const inp=$('#fAmount'); if(!inp || !inp.value.trim()) return;
+  const v=evalAmountExpr(inp.value);
+  if(v==null) return;
+  if(isNaN(v)){ toast('Formule invalide — vérifie le montant'); return; }
+  inp.value=Math.abs(v).toFixed(2).replace('.',',');
 }
 
 // --- Navigation clavier dans le formulaire (0.8.0) ---
@@ -766,6 +795,8 @@ function applySug(match){
 }
 function saveTx(andNew){
   _saveAndNew = !!andNew;
+  const rawAmt=$('#fAmount') ? $('#fAmount').value : '';
+  if(isNaN(evalAmountExpr(rawAmt))){ toast('Formule de montant invalide — corrige avant d\u2019enregistrer'); return; }
   const g=s=>$(s).value;
   const amt=readAmount();
   const patch={
@@ -954,7 +985,8 @@ function onLibInput(){
 function maybeAutofillAdh(){
   const adhF=$('#fAdh'); if(!adhF) return;
   const lib=$('#fLib').value.trim();
-  const cred=(parseFloat($('#fAmount') && $('#fAmount').value)||0)>0 && _amountSign>0;
+  const av=evalAmountExpr($('#fAmount') && $('#fAmount').value);
+  const cred=(av>0) && _amountSign>0;
   const c2=($('#fCat2').value||'').toUpperCase();
   const isAdhDebit=/LICENCE|ASSURANCE|FORMATION/.test(c2);
   if(!(cred || isAdhDebit)) return;
@@ -1116,10 +1148,17 @@ function renderOps(){
     note.innerHTML=`<div class="tag" style="margin-bottom:8px">Glisse ⠿ pour réordonner. Sélectionne un seul compte pour voir le solde cumulé.</div>`;
   }
 
-  $('#opsList').innerHTML=list.length?list.map(t=>txRow(t,{running:runningById[t.id],drag:true})).join(''):
+  $('#opsList').innerHTML=list.length?list.map(t=>txRow(t,{running:runningById[t.id],drag:!opsSelMode,selectable:opsSelMode,selected:opsSel.has(t.id)})).join(''):
     (futures.length?'':'<div class="empty">Aucun résultat</div>');
-  attachTxClicks('#opsList');
-  enableDrag('#opsList');
+  if(opsSelMode){
+    // en mode sélection, retire le drag-reorder (incompatible) ; le clic sur la
+    // ligne ouvre toujours l'édition, seule la case à cocher sélectionne.
+    attachTxClicks('#opsList');
+  } else {
+    attachTxClicks('#opsList');
+    enableDrag('#opsList');
+  }
+  updateOpsSelBar();
 
   const c=activeFilterCount();
   $('#filterCount').textContent=c?` (${c})`:'';
@@ -1134,6 +1173,36 @@ function renderAcctChips(){
 }
 function setOpsAccount(a){ opsAccount = (opsAccount===a) ? null : a; renderOps(); }
 function clearFilters(){ opsFilters={}; opsAccount=null; $('#opsSearch').value=''; renderOps(); }
+
+/* --- Sélection multiple (Opérations) --- */
+let opsSelMode=false, opsSel=new Set();
+function toggleOpsSelMode(){
+  opsSelMode=!opsSelMode;
+  if(!opsSelMode) opsSel=new Set();
+  const btn=$('#btnOpsSelMode'); if(btn) btn.classList.toggle('on',opsSelMode);
+  renderOps();
+}
+function exitOpsSelMode(){ opsSelMode=false; opsSel=new Set(); const btn=$('#btnOpsSelMode'); if(btn) btn.classList.remove('on'); renderOps(); }
+function toggleOpsRow(id,on){
+  if(on) opsSel.add(id); else opsSel.delete(id);
+  const row=document.querySelector(`#opsList .tx[data-id="${id}"]`); if(row) row.classList.toggle('sel',on);
+  updateOpsSelBar();
+}
+function toggleAllOpsSel(on){
+  const ids=[...document.querySelectorAll('#opsList .tx')].map(el=>el.dataset.id);
+  opsSel = on ? new Set(ids) : new Set();
+  renderOps();
+}
+function updateOpsSelBar(){
+  const bar=$('#opsSelActions'); if(!bar) return;
+  bar.style.display=opsSelMode?'flex':'none';
+  if(!opsSelMode) return;
+  const total=document.querySelectorAll('#opsList .tx').length, n=opsSel.size;
+  $('#opsSelCount').textContent=n?`${n} sélectionnée(s)`:'0 sélectionnée';
+  const sum=[...opsSel].reduce((s,id)=>{ const t=Store.all().find(x=>x.id===id); return s+(t?amt(t):0); },0);
+  $('#opsSelSum').textContent=`Somme : ${eur(sum)}`;
+  const all=$('#opsSelAll'); if(all){ all.checked=n>0&&n===total; all.indeterminate=n>0&&n<total; }
+}
 
 /* Drag & drop pour réordonner manuellement */
 let dragId=null;
