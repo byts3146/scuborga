@@ -21,6 +21,20 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.11.1 — 04/07/2026
+--------------------
+Cases à cocher toujours visibles, retrait du glisser-déposer.
+- Les cases de sélection (Opérations) sont affichées en permanence,
+  plus besoin d'activer un mode.
+- Glisser-déposer (points ⠿, réordonnancement manuel) entièrement
+  retiré — conflit avec la sélection permanente, et peu fiable au
+  tactile de toute façon.
+- La barre récap (nombre sélectionné + somme) s'affiche/se masque
+  automatiquement selon la sélection.
+Note : un ordre manuel déjà enregistré (Store.data.manualOrder)
+reste respecté ; seule la possibilité d'en créer un nouveau via
+glisser-déposer disparaît.
+
 v0.11.0 — 04/07/2026
 --------------------
 Sélection multiple (Opérations) + formules dans le montant (Saisie).
