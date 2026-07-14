@@ -307,7 +307,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.11.8',channel:'bêta',storageKey:'scuborga_v0_3_0_beta',releaseDate:'04/07/2026'};
+const APP_META={name:'Scuborga',version:'0.11.9',channel:'bêta',storageKey:'scuborga_v0_3_0_beta',releaseDate:'04/07/2026'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -1148,7 +1148,6 @@ function renderOps(){
 
   // solde courant cumulé : seulement si un seul compte sélectionné.
   // Ancré sur le solde réel (Réglages) à la dernière opération, en remontant le temps.
-  const note=$('#opsBalNote');
   let runningById={};
   if(opsAccount){
     const real=(Store.data.realBalances||{})[opsAccount];
@@ -1156,12 +1155,7 @@ function renderOps(){
     if(real!=null && !isNaN(parseFloat(real))){
       let run=parseFloat(real);
       chrono.forEach(t=>{ runningById[t.id]=run; run-=amt(t); });
-      note.innerHTML=`<div class="tag" style="margin-bottom:8px">Solde après chaque opération (${ACCOUNTS[opsAccount]||opsAccount}, solde réel ${eur(parseFloat(real))} au plus récent).</div>`;
-    } else {
-      note.innerHTML=`<div class="tag" style="margin-bottom:8px">Renseigne le solde de ce compte dans Paramètres pour voir le solde cumulé.</div>`;
     }
-  } else {
-    note.innerHTML=`<div class="tag" style="margin-bottom:8px">Sélectionne un seul compte pour voir le solde cumulé.</div>`;
   }
 
   $('#opsList').innerHTML=list.length?list.map(t=>txRow(t,{running:runningById[t.id],selectable:true,selected:opsSel.has(t.id)})).join(''):
