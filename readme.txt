@@ -21,6 +21,16 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.11.8 — 04/07/2026
+--------------------
+Case "Formule" pour le champ Montant.
+Nouvelle case à cocher "Formule (ex: 48,5-20)" sous le champ Montant :
+cochée, bascule en clavier complet et pré-remplit le "=" (plus besoin
+de trouver ce caractère sur un clavier numérique restreint) ;
+décochée, revient au clavier numérique classique. Réinitialisée à
+chaque ouverture du formulaire. Répond au point d'attention laissé
+ouvert en v0.11.0.
+
 v0.11.7 — 04/07/2026
 --------------------
 Message clair pour les conflits orphelins (opération introuvable).
