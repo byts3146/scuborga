@@ -21,6 +21,17 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.11.3 — 04/07/2026
+--------------------
+Lignes d'opération sur une seule ligne (Opérations).
+Refonte de txRow() : [case à cocher] [⏳ si future] [libellé
+tronqué] [date] [montant + solde cumulé].
+Disparaît de l'affichage en liste (reste visible en ouvrant la
+ligne) : pastilles cat2/cat3, tag adhérent, tag nature, pastille
+"prévu" (remplacée par ⏳). Le statut "non classée" reste visible
+via la bordure gauche ambre. Seuls #opsList et #futureList sont
+concernés ; Saisie et le reste de l'appli sont inchangés.
+
 v0.11.2 — 04/07/2026
 --------------------
 Focus auto sur Libellé + duplication depuis Opérations.
