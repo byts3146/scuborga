@@ -307,7 +307,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.11.1',channel:'bêta',storageKey:'scuborga_v0_3_0_beta',releaseDate:'04/07/2026'};
+const APP_META={name:'Scuborga',version:'0.11.2',channel:'bêta',storageKey:'scuborga_v0_3_0_beta',releaseDate:'04/07/2026'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -635,6 +635,9 @@ function openTx(id,kind){
   // si l'adhérent actuel correspond au libellé, on le considère auto-rempli (modifiable au renommage)
   maybeAutofillAdh._last = (t.adherent && matchAdherent(t.libelle)===t.adherent) ? t.adherent : null;
   openSheet();
+  // Focus auto sur le libellé pour pouvoir taper immédiatement (évite un tap
+  // à vide à chaque nouvelle saisie, y compris en saisie en série).
+  setTimeout(()=>{ const f=$('#fLib'); if(f) f.focus(); }, 80);
 }
 function natureLabel(n){ return n? (REF.natureLabels[n]||n) : ''; }
 
@@ -851,8 +854,8 @@ function reopenTxWith(seed){
     date:new Date().toISOString().slice(0,10),debit:0,credit:0,season:curSeason(),
     adherent:'',justif:'',comment:'',isPrev:false,origStatus:''}, seed);
   _txPreset=t; openTx(null, t.isPrev?'PREV':'REAL'); _txPreset=null;
-  // la feuille reste ouverte ; on ne force pas le focus (sur mobile, ouvrir le clavier
-  // automatiquement peut être déroutant — l'utilisateur tape le libellé quand il veut).
+  // openTx() force désormais le focus sur le libellé (voir plus haut), y
+  // compris ici en saisie en série — c'est le but recherché.
 }
 
 // Détecte les valeurs saisies absentes des tables
@@ -1169,6 +1172,22 @@ function clearFilters(){ opsFilters={}; opsAccount=null; $('#opsSearch').value='
 /* --- Sélection multiple (Opérations) --- */
 let opsSel=new Set();
 function clearOpsSel(){ opsSel=new Set(); renderOps(); }
+// Duplique la sélection en nouveau(x) brouillon(s), pour ajuster (montant,
+// date...) avant de les repasser en opération via Saisie.
+function duplicateOpsSel(){
+  const ids=[...opsSel];
+  if(!ids.length){ toast('Sélectionne au moins une ligne'); return; }
+  const sel=ids.map(id=>Store.all().find(t=>t.id===id)).filter(Boolean);
+  const created=sel.map(t=>{ const c=JSON.parse(JSON.stringify(t)); delete c.id; c.status='draft'; c.origStatus=''; return Store.add(c); });
+  clearOpsSel();
+  if(created.length===1){
+    toast('Dupliquée en brouillon — à ajuster');
+    openTx(created[0].id,'REEL');
+  } else {
+    toast(`${created.length} dupliquée(s) en brouillon`);
+    go('classer');
+  }
+}
 function toggleOpsRow(id,on){
   if(on) opsSel.add(id); else opsSel.delete(id);
   const row=document.querySelector(`#opsList .tx[data-id="${id}"]`); if(row) row.classList.toggle('sel',on);
