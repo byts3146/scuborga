@@ -307,7 +307,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.11.9',channel:'bêta',storageKey:'scuborga_v0_3_0_beta',releaseDate:'04/07/2026'};
+const APP_META={name:'Scuborga',version:'0.11.10',channel:'bêta',storageKey:'scuborga_v0_3_0_beta',releaseDate:'04/07/2026'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -396,10 +396,10 @@ const CAT_HUE={
   adhesion_credit:210, // bleu : adhésion, licence, assurance, formation (recettes)
   autre_credit:175,    // turquoise : repas, textiles, dons, autres recettes
   // débits
-  sortie_debit:350,    // rouge/rose : sorties, plongées, logement, transport, repas (dépenses), all-in
+  sortie_debit:225,    // bleu : sorties, plongées, logement, transport, repas (dépenses), all-in
   licence_debit:28,    // orange : licence, assurance (dépenses)
   cf_debit:48,         // jaune : charges fixes (frais, cotisations, AG, matériel…)
-  autre_debit:8        // rouge profond : reste des charges variables
+  autre_debit:250      // bleu-violet : reste des charges variables
 };
 function catFamily(t){
   const c2=(t.cat2||'').toUpperCase();
