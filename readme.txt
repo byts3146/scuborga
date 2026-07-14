@@ -21,6 +21,24 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.11.6 — 04/07/2026
+--------------------
+Correction du vrai bug : cases à cocher héritant du style des
+champs texte.
+Root cause : la règle générale input/select/textarea (width:100%,
+padding, fond, bordure) s'appliquait aussi aux <input type=checkbox>.
+Régression introduite en v0.11.5 (retrait d'un width:auto pensé à
+tort redondant). Dans une ligne flex nowrap, la case réclamait 100%
+de la largeur, écrasant le libellé et poussant date/montant hors du
+cadre visible — exactement les symptômes signalés par Franck (capture
+à l'appui).
+Correctif : nouvelle règle globale input[type=checkbox]{width:auto;
+padding:0;background:none;border:none} qui réinitialise toutes les
+cases à cocher de l'appli (9 au total), pas seulement celles
+d'Opérations/Saisie.
+Ce n'était pas un problème de cache : le code déployé était
+identique au code source.
+
 v0.11.5 — 04/07/2026
 --------------------
 Même disposition dans Saisie (draftRow).
