@@ -21,6 +21,14 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.11.9 — 04/07/2026
+--------------------
+Retrait de la note de solde cumulé dans Opérations.
+Supprime les 3 variantes du texte explicatif au-dessus de la liste
+("Solde après chaque opération...", "Renseigne le solde...",
+"Sélectionne un seul compte..."). Le calcul et l'affichage du solde
+cumulé à côté de chaque montant restent inchangés.
+
 v0.11.8 — 04/07/2026
 --------------------
 Case "Formule" pour le champ Montant.
