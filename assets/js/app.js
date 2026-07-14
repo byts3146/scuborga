@@ -307,7 +307,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.11.7',channel:'bêta',storageKey:'scuborga_v0_3_0_beta',releaseDate:'04/07/2026'};
+const APP_META={name:'Scuborga',version:'0.11.8',channel:'bêta',storageKey:'scuborga_v0_3_0_beta',releaseDate:'04/07/2026'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -590,8 +590,10 @@ function openTx(id,kind){
     <div class="field"><label>Montant</label>
       <div class="amount-row">
         <button type="button" id="fSign" class="sign-btn" onclick="toggleSign()">−</button>
-        <input id="fAmount" type="text" inputmode="decimal" placeholder="0.00 ou =48,5-20" style="flex:1" onblur="normalizeAmountField()">
+        <input id="fAmount" type="text" inputmode="decimal" placeholder="0.00" style="flex:1" onblur="normalizeAmountField()">
       </div>
+      <label style="display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted);margin-top:6px;font-weight:600">
+        <input type="checkbox" id="fFormulaMode" style="width:auto" onchange="toggleFormulaMode()"> Formule (ex: 48,5-20)</label>
       <div id="amountHint" class="amount-hint">Sortie (débit)</div>
     </div>
     <hr style="border:none;border-top:1px solid var(--line);margin:6px 0 14px">
@@ -664,7 +666,8 @@ function initAmountField(t){
     val='';
   }
   _amountSign=sign;
-  const inp=$('#fAmount'); if(inp) inp.value = (val===''?'':Math.abs(val).toFixed(2).replace('.',','));
+  const inp=$('#fAmount'); if(inp){ inp.value = (val===''?'':Math.abs(val).toFixed(2).replace('.',',')); inp.setAttribute('inputmode','decimal'); }
+  const fm=$('#fFormulaMode'); if(fm) fm.checked=false;
   updateSignUI();
 }
 function toggleSign(){ _amountSign = -_amountSign; updateSignUI();
@@ -703,6 +706,21 @@ function evalAmountExpr(raw){
 }
 // Au blur du champ Montant : calcule le résultat (formule ou virgule) et
 // remplace l'affichage par le nombre normalisé, à la française.
+// Case "Formule" : bascule le champ Montant en clavier complet (le clavier
+// numérique restreint n'a pas toujours le signe '=' selon les téléphones)
+// et pré-remplit le '=' pour que l'utilisateur n'ait qu'à taper l'expression.
+function toggleFormulaMode(){
+  const inp=$('#fAmount'), cb=$('#fFormulaMode'); if(!inp||!cb) return;
+  if(cb.checked){
+    inp.setAttribute('inputmode','text');
+    if(!inp.value.trim().startsWith('=')) inp.value = '=' + inp.value.trim();
+  } else {
+    inp.setAttribute('inputmode','decimal');
+    if(inp.value.trim().startsWith('=')) inp.value = inp.value.trim().slice(1);
+  }
+  inp.focus();
+  inp.setSelectionRange(inp.value.length, inp.value.length);
+}
 function normalizeAmountField(){
   const inp=$('#fAmount'); if(!inp || !inp.value.trim()) return;
   const v=evalAmountExpr(inp.value);
