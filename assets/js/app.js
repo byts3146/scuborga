@@ -307,7 +307,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.11.2',channel:'bêta',storageKey:'scuborga_v0_3_0_beta',releaseDate:'04/07/2026'};
+const APP_META={name:'Scuborga',version:'0.11.3',channel:'bêta',storageKey:'scuborga_v0_3_0_beta',releaseDate:'04/07/2026'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -429,23 +429,14 @@ function txRow(t,opts){
   opts=opts||{};
   const a=amt(t); const prev=isFuture(t);
   const check = opts.selectable ? `<input type="checkbox" class="selcheck" ${opts.selected?'checked':''} onclick="event.stopPropagation();toggleOpsRow('${t.id}',this.checked)">` : '';
-  const running = (opts.running!=null) ? `<div class="run">${eur(opts.running)}</div>` : '';
-  return `<div class="tx ${isClassified(t)?'':'unclassified'} ${opts.selected?'sel':''}" data-id="${t.id}">
-    ${check}
-    <div class="grow">
-      <div class="lib">${esc(t.libelle||'(sans libellé)')}</div>
-      <div class="meta">
-        ${pillCat(t)}
-        ${t.adherent && norm(t.adherent)!==norm(t.libelle||'') ? `<span class="tag adh">👤 ${esc(t.adherent)}</span>` : ''}
-        ${t.nature?`<span class="tag">${t.nature}</span>`:''}
-        ${t.date?`<span>${fmtDateY(t.date)}</span>`:''}
-        ${prev?'<span class="pill prev">prévu</span>':''}
-      </div>
-    </div>
-    <div style="text-align:right">
-      <div class="amt ${a>=0?'pos':'neg'}">${eur(a)}</div>
-      ${running}
-    </div>
+  const icon = prev ? '<span class="txicon" title="Opération future">⏳</span>' : '';
+  const date = t.date ? `<span class="txdate">${fmtDateY(t.date)}</span>` : '';
+  const running = (opts.running!=null) ? `<span class="run">${eur(opts.running)}</span>` : '';
+  return `<div class="tx txline ${isClassified(t)?'':'unclassified'} ${opts.selected?'sel':''}" data-id="${t.id}">
+    ${check}${icon}
+    <div class="lib">${esc(t.libelle||'(sans libellé)')}</div>
+    ${date}
+    <div class="amtwrap"><div class="amt ${a>=0?'pos':'neg'}">${eur(a)}</div>${running}</div>
   </div>`;
 }
 function attachTxClicks(sel){ document.querySelectorAll(sel+' .tx').forEach(el=>el.onclick=()=>openTx(el.dataset.id)); }

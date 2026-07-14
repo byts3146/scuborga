@@ -79,15 +79,18 @@ nav .badge{position:absolute;top:4px;right:50%;margin-right:-22px;background:var
 .tx .amt.pos{color:var(--green)} .tx .amt.neg{color:var(--red)}
 .tx .grow{flex:1;min-width:0}
 .tx.unclassified{border-left:3px solid var(--amber)}
-/* compact list (Opérations) */
-#opsList .tx, #futureList .tx{padding:7px 11px;margin-bottom:5px;border-radius:9px;gap:8px;align-items:flex-start}
-#opsList .tx .lib, #futureList .tx .lib{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#opsList .tx .meta, #futureList .tx .meta{margin-top:2px;font-size:10.5px;gap:5px 6px;flex-wrap:wrap;overflow:visible;align-items:center}
-#opsList .tx .meta .pill, #futureList .tx .meta .pill{padding:1px 7px;font-size:10px;white-space:normal;max-width:none}
+/* compact list (Opérations) — une seule ligne : case/icône, libellé, date, montant+solde */
+#opsList .tx, #futureList .tx{padding:9px 11px;margin-bottom:5px;border-radius:9px;gap:8px}
+.txline{align-items:center;flex-wrap:nowrap}
+.txline .selcheck{flex:0 0 auto;margin:0}
+.txline .txicon{flex:0 0 auto;font-size:12px}
+.txline .lib{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;font-weight:600}
+.txline .txdate{flex:0 0 auto;font-size:10.5px;color:var(--muted);white-space:nowrap}
+.txline .amtwrap{flex:0 0 auto;display:flex;align-items:baseline;gap:6px;white-space:nowrap}
+.txline .amt{font-size:13.5px;white-space:nowrap}
+.txline .run{font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
 .catpill{font-weight:700;letter-spacing:.01em}
 .cat3pill{font-weight:600}
-#opsList .tx .amt, #futureList .tx .amt{font-size:13.5px}
-#opsList .tx .run{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:1px}
 .empty{text-align:center;color:var(--muted);padding:40px 20px}
 .empty svg{width:48px;height:48px;opacity:.4;margin-bottom:12px}
 /* sheet */
