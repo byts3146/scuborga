@@ -21,6 +21,15 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.11.4 — 04/07/2026
+--------------------
+Ligne méta (cat2/cat3/adhérent) + déplacement du champ Adhérent.
+1) Ligne d'opération (Opérations) : ajout d'une seconde ligne sous
+   la ligne principale, avec cat2, cat3 puis l'adhérent si
+   renseigné. Ne s'affiche pas si vide.
+2) Formulaire de saisie : le champ Adhérent est déplacé juste après
+   Cat. 3, sorti des "Détails avancés". Saison y reste seule.
+
 v0.11.3 — 04/07/2026
 --------------------
 Lignes d'opération sur une seule ligne (Opérations).
