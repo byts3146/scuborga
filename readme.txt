@@ -21,6 +21,17 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.11.7 — 04/07/2026
+--------------------
+Message clair pour les conflits orphelins (opération introuvable).
+Certains conflits référencent des opérations qui ont disparu du
+cloud ET du local depuis (un rechargement complet remplace
+Store.data.tx par le contenu du cloud, qui ne les contient plus —
+seul le journal des conflits en garde la trace). Nouvel affichage
+dédié pour ce cas : message explicatif clair + un seul bouton
+"Retirer cette alerte" (au lieu des 3 boutons habituels, confus
+quand il n'y a plus rien à arbitrer).
+
 v0.11.6 — 04/07/2026
 --------------------
 Correction du vrai bug : cases à cocher héritant du style des
