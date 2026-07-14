@@ -307,7 +307,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.11.4',channel:'bêta',storageKey:'scuborga_v0_3_0_beta',releaseDate:'04/07/2026'};
+const APP_META={name:'Scuborga',version:'0.11.5',channel:'bêta',storageKey:'scuborga_v0_3_0_beta',releaseDate:'04/07/2026'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -480,17 +480,20 @@ function draftRow(t){
   const sug=!isClassified(t)?suggest(t):null;
   const inc=incoherences(t);
   const incTags=inc.map(x=>`<span class="pill" style="background:rgba(207,34,46,.12);color:var(--red)">${x}</span>`).join('');
-  return `<div class="tx draftrow ${checked?'sel':''}" data-id="${t.id}">
-    <input type="checkbox" class="drcheck" ${checked?'checked':''} onclick="event.stopPropagation();toggleDraft('${t.id}',this.checked)">
-    <div class="grow" onclick="openTx('${t.id}','REEL')">
+  const icon = t.isPrev ? '<span class="txicon" title="Opération future">⏳</span>' : '';
+  const date = t.date ? `<span class="txdate">${fmtDateY(t.date)}</span>` : '';
+  const cat = t.cat2 ? pillCat(t) : '<span class="pill" style="background:rgba(154,103,0,.12);color:var(--amber)">à classer</span>';
+  const sugTag = sug ? `<span class="pill prev">≈ ${esc(sug.cat2)}</span>` : '';
+  const adhTag = (t.adherent && norm(t.adherent)!==norm(t.libelle||'')) ? `<span class="tag adh">👤 ${esc(t.adherent)}</span>` : '';
+  return `<div class="tx txline draftrow ${checked?'sel':''}" data-id="${t.id}">
+    <div class="txmain" onclick="openTx('${t.id}','REEL')">
+      <input type="checkbox" class="selcheck" ${checked?'checked':''} onclick="event.stopPropagation();toggleDraft('${t.id}',this.checked)">
+      ${icon}
       <div class="lib">${esc(t.libelle||'(sans libellé)')}</div>
-      <div class="meta"><span>${fmtDateY(t.date)}</span>${t.nature?`<span class="tag">${t.nature}</span>`:''}
-        ${t.isPrev?'<span class="pill prev">future</span>':''}
-        ${t.cat2?pillCat(t):'<span class="pill" style="background:rgba(154,103,0,.12);color:var(--amber)">à classer</span>'}
-        ${sug?`<span class="pill prev">≈ ${esc(sug.cat2)}</span>`:''}
-        ${incTags}</div>
+      ${date}
+      <div class="amtwrap"><div class="amt ${amt(t)>=0?'pos':'neg'}">${eur(amt(t))}</div></div>
     </div>
-    <div class="amt ${amt(t)>=0?'pos':'neg'}" onclick="openTx('${t.id}','REEL')">${eur(amt(t))}</div>
+    <div class="txmeta">${cat}${adhTag}${sugTag}${incTags}</div>
   </div>`;
 }
 
