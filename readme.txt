@@ -21,6 +21,17 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.12.0 — 04/07/2026
+--------------------
+Réordonner les opérations via la sélection (sans glisser-déposer).
+Nouveaux boutons "▲"/"▼" dans la barre de sélection multiple
+d'Opérations : déplace la ou les ligne(s) sélectionnée(s) d'un cran,
+fonctionne aussi pour une sélection non contiguë. La sélection reste
+active après déplacement (clics répétés possibles).
+Corrigé au passage : l'ordre manuel (Store.data.manualOrder)
+n'était jamais synchronisé au cloud — ajout de
+CloudSync.pushManualOrder(), l'ordre suit désormais entre appareils.
+
 v0.11.10 — 04/07/2026
 --------------------
 Pastilles rouges -> bleues, tag adhérent en gris.
