@@ -21,6 +21,16 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.11.5 — 04/07/2026
+--------------------
+Même disposition dans Saisie (draftRow).
+Reproduit dans Saisie la disposition validée pour Opérations : ligne
+principale (case, ⏳ si future, libellé, date, montant) + ligne méta
+en dessous (catégorie ou "à classer" → adhérent → suggestion de
+règle → incohérences).
+Nettoyage CSS : anciennes règles .tx .lib/.meta/.amt/.grow devenues
+mortes (tout passe désormais par .txline), supprimées.
+
 v0.11.4 — 04/07/2026
 --------------------
 Ligne méta (cat2/cat3/adhérent) + déplacement du champ Adhérent.
