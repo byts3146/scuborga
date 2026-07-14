@@ -307,7 +307,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.11.3',channel:'bêta',storageKey:'scuborga_v0_3_0_beta',releaseDate:'04/07/2026'};
+const APP_META={name:'Scuborga',version:'0.11.4',channel:'bêta',storageKey:'scuborga_v0_3_0_beta',releaseDate:'04/07/2026'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -432,11 +432,15 @@ function txRow(t,opts){
   const icon = prev ? '<span class="txicon" title="Opération future">⏳</span>' : '';
   const date = t.date ? `<span class="txdate">${fmtDateY(t.date)}</span>` : '';
   const running = (opts.running!=null) ? `<span class="run">${eur(opts.running)}</span>` : '';
+  const adhTag = (t.adherent && norm(t.adherent)!==norm(t.libelle||'')) ? `<span class="tag adh">👤 ${esc(t.adherent)}</span>` : '';
   return `<div class="tx txline ${isClassified(t)?'':'unclassified'} ${opts.selected?'sel':''}" data-id="${t.id}">
-    ${check}${icon}
-    <div class="lib">${esc(t.libelle||'(sans libellé)')}</div>
-    ${date}
-    <div class="amtwrap"><div class="amt ${a>=0?'pos':'neg'}">${eur(a)}</div>${running}</div>
+    <div class="txmain">
+      ${check}${icon}
+      <div class="lib">${esc(t.libelle||'(sans libellé)')}</div>
+      ${date}
+      <div class="amtwrap"><div class="amt ${a>=0?'pos':'neg'}">${eur(a)}</div>${running}</div>
+    </div>
+    <div class="txmeta">${pillCat(t)}${adhTag}</div>
   </div>`;
 }
 function attachTxClicks(sel){ document.querySelectorAll(sel+' .tx').forEach(el=>el.onclick=()=>openTx(el.dataset.id)); }
@@ -598,15 +602,13 @@ function openTx(id,kind){
     </div>
     <div class="field"><label>Cat. 3 (sous-cat / sortie)</label>
       <div class="combo"><input id="fCat3" autocomplete="off" value="${esc(t.cat3||'')}"><div class="combodrop" id="fCat3_d"></div></div></div>
+    <div class="field"><label>Adhérent</label>
+      <div class="combo"><input id="fAdh" autocomplete="off" value="${esc(t.adherent||'')}"><div class="combodrop" id="fAdh_d"></div></div></div>
     <button type="button" class="adv-toggle" onclick="toggleAdvancedTx()">▸ Détails avancés</button>
     <div class="adv-area" id="txAdvanced">
       <div class="field"><label>Compte (auto)</label><input id="fCompte" readonly value="${esc(t.compte||'')}"></div>
-      <div class="row">
-        <div class="field"><label>Saison</label>
-          <div class="combo"><input id="fSeason" autocomplete="off" value="${esc(t.season||curSeason())}"><div class="combodrop" id="fSeason_d"></div></div></div>
-        <div class="field"><label>Adhérent</label>
-          <div class="combo"><input id="fAdh" autocomplete="off" value="${esc(t.adherent||'')}"><div class="combodrop" id="fAdh_d"></div></div></div>
-      </div>
+      <div class="field"><label>Saison</label>
+        <div class="combo"><input id="fSeason" autocomplete="off" value="${esc(t.season||curSeason())}"><div class="combodrop" id="fSeason_d"></div></div></div>
       <div class="field"><label>Justificatif</label><input id="fJustif" value="${esc(t.justif||'').replace(/"/g,'&quot;')}"></div>
       <div class="field"><label>Commentaire</label><input id="fComment" value="${esc(t.comment||'').replace(/"/g,'&quot;')}"></div>
       <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-bottom:14px">
