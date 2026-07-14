@@ -21,6 +21,17 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.11.2 — 04/07/2026
+--------------------
+Focus auto sur Libellé + duplication depuis Opérations.
+1) Le champ Libellé reçoit le focus automatiquement à l'ouverture du
+   formulaire de saisie (nouvelle opération, édition, saisie en
+   série) — évite un tap à vide à chaque fois.
+2) Nouveau bouton "⎘ Dupliquer" dans la barre de sélection multiple
+   d'Opérations. Duplique en brouillon(s) pour ajuster avant
+   validation (1 sélectionnée → ouverture directe ; plusieurs →
+   redirection vers Saisie).
+
 v0.11.1 — 04/07/2026
 --------------------
 Cases à cocher toujours visibles, retrait du glisser-déposer.
