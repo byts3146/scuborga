@@ -127,6 +127,7 @@ const CloudSync = {
   pushSeq(){ this.pushSetting('seq', Store.data.seq); },
   pushBalances(){ this.pushSetting('realBalances', Store.data.realBalances||{}); },
   pushMonthlyBalances(){ this.pushSetting('monthlyBalances', Store.data.monthlyBalances||{}); },
+  pushManualOrder(){ this.pushSetting('manualOrder', Store.data.manualOrder||[]); },
 
   // Tables de classification -> table classification_sheets (upsert par nom)
   pushSheet(name){
@@ -307,7 +308,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.11.10',channel:'bêta',storageKey:'scuborga_v0_3_0_beta',releaseDate:'04/07/2026'};
+const APP_META={name:'Scuborga',version:'0.12.0',channel:'bêta',storageKey:'scuborga_v0_3_0_beta',releaseDate:'04/07/2026'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -1180,6 +1181,27 @@ function clearFilters(){ opsFilters={}; opsAccount=null; $('#opsSearch').value='
 /* --- Sélection multiple (Opérations) --- */
 let opsSel=new Set();
 function clearOpsSel(){ opsSel=new Set(); renderOps(); }
+// Déplace le bloc sélectionné d'un cran (haut/bas) dans l'ordre manuel de la
+// liste. Fonctionne même pour une sélection non contiguë (déplace chaque
+// ligne sélectionnée au-delà de sa voisine non sélectionnée la plus proche).
+function moveOpsSel(dir){
+  const ids=[...opsSel];
+  if(!ids.length){ toast('Sélectionne au moins une ligne à déplacer'); return; }
+  const visible=orderedList(Store.all().filter(t=>!isFuture(t)&&!isDraft(t)).filter(opsMatch)).map(t=>t.id);
+  let order=(Store.data.manualOrder && Store.data.manualOrder.length) ? [...Store.data.manualOrder] : [];
+  visible.forEach(id=>{ if(!order.includes(id)) order.push(id); });
+  // ne travailler que sur le sous-ensemble visible, garder le reste figé à sa place
+  const visSet=new Set(visible);
+  const seq=order.filter(id=>visSet.has(id));
+  const sel=seq.map(id=>ids.includes(id));
+  const n=seq.length;
+  if(dir<0){ for(let i=1;i<n;i++){ if(sel[i]&&!sel[i-1]){ [seq[i],seq[i-1]]=[seq[i-1],seq[i]]; [sel[i],sel[i-1]]=[sel[i-1],sel[i]]; } } }
+  else { for(let i=n-2;i>=0;i--){ if(sel[i]&&!sel[i+1]){ [seq[i],seq[i+1]]=[seq[i+1],seq[i]]; [sel[i],sel[i+1]]=[sel[i+1],sel[i]]; } } }
+  let vi=0;
+  Store.data.manualOrder = order.map(id=> visSet.has(id) ? seq[vi++] : id);
+  Store.save(); CloudSync.pushManualOrder();
+  renderOps();
+}
 // Duplique la sélection en nouveau(x) brouillon(s), pour ajuster (montant,
 // date...) avant de les repasser en opération via Saisie.
 function duplicateOpsSel(){
@@ -2189,6 +2211,7 @@ async function loadFromCloud(){
     (setRows||[]).forEach(row=>{
       if(row.key==='realBalances') Store.data.realBalances = row.value;
       else if(row.key==='monthlyBalances') Store.data.monthlyBalances = row.value;
+      else if(row.key==='manualOrder') Store.data.manualOrder = row.value;
       else if(row.key==='seq') Store.data.seq = Number(row.value)||Store.data.seq;
       else if(row.key==='defaultSeason') Store.data.defaultSeason = row.value || null;
     });
