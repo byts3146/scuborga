@@ -21,6 +21,16 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.11.10 — 04/07/2026
+--------------------
+Pastilles rouges -> bleues, tag adhérent en gris.
+- CAT_HUE : sortie_debit (rouge/rose -> bleu) et autre_debit (rouge
+  profond -> bleu-violet). Crédits et licence_debit/cf_debit
+  inchangés.
+- Tag adhérent : bleu accent -> gris neutre.
+Non touché : .pill.cv (incohérences, conflits) reste rouge
+(signal d'erreur volontairement distinct).
+
 v0.11.9 — 04/07/2026
 --------------------
 Retrait de la note de solde cumulé dans Opérations.
