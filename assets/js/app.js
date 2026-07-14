@@ -307,7 +307,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.11.6',channel:'bêta',storageKey:'scuborga_v0_3_0_beta',releaseDate:'04/07/2026'};
+const APP_META={name:'Scuborga',version:'0.11.7',channel:'bêta',storageKey:'scuborga_v0_3_0_beta',releaseDate:'04/07/2026'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -1702,6 +1702,14 @@ function paramSync(){
     ${c.length===0?'<p class="note" style="margin-top:14px">Aucun conflit en attente. 👍</p>':
       c.map(cf=>{
         const t=Store.data.tx.find(x=>x.id===cf.id);
+        if(!t){
+          return `<div class="card" style="margin-top:12px">
+            <div style="font-weight:600;font-size:14px">Opération introuvable</div>
+            <div class="tag" style="margin-top:4px">${cf.reason} — détecté le ${fmtDateFull(cf.when.slice(0,10))}</div>
+            <p class="note" style="margin-top:6px">Cette opération n'existe plus ni en local ni dans le cloud (elle a disparu après un rechargement des données). Il n'y a rien à arbitrer : tu peux retirer cette alerte sans risque.</p>
+            <button class="btn ghost" style="margin-top:8px" onclick="conflictDismiss('${cf.id}')">Retirer cette alerte</button>
+          </div>`;
+        }
         return `<div class="card" style="margin-top:12px">
           <div style="font-weight:600;font-size:14px">${txLabel(t)}</div>
           <div class="tag" style="margin-top:4px">${cf.reason} — détecté le ${fmtDateFull(cf.when.slice(0,10))}</div>
