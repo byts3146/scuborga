@@ -21,6 +21,23 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.13.0 — 04/07/2026
+--------------------
+Correctif duplication + tri saisons + Adhérents enrichi.
+1) Bug corrigé : dupliquer une opération générait un faux conflit de
+   synchro (la copie conservait _cloudUpdatedAt de l'original).
+   Corrigé dans duplicateOpsSel() et draftAction('dup').
+2) Saisons triées par ordre décroissant dans le formulaire de
+   saisie/édition uniquement.
+3) Bouton "+ Ajouter une opération" (Saisie) plus visible ; message
+   de confirmation reformulé.
+4) Les opérations validées depuis Saisie passent en tête de l'ordre
+   manuel s'il en existe un.
+5) Menu Adhérents : recherche par nom, tri (montant/alphabétique),
+   nouveau sous-onglet "Adhésions" (recettes réglées par l'adhérent
+   puis dépenses payées par le club pour lui — FFESSM, Laffont
+   assurance...).
+
 v0.12.0 — 04/07/2026
 --------------------
 Réordonner les opérations via la sélection (sans glisser-déposer).
