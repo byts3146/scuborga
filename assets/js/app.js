@@ -308,7 +308,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.12.0',channel:'bêta',storageKey:'scuborga_v0_3_0_beta',releaseDate:'04/07/2026'};
+const APP_META={name:'Scuborga',version:'0.13.0',channel:'bêta',storageKey:'scuborga_v0_3_0_beta',releaseDate:'04/07/2026'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -530,9 +530,17 @@ function draftAction(act){
       else { patch.origStatus=''; }
       Store.update(t.id,patch);
     });
+    // Si un ordre manuel existe déjà (v0.12.0), les nouvelles opérations
+    // passent en tête pour apparaître en premier dans Opérations — sinon
+    // le tri chronologique par défaut les place déjà en haut (date du jour).
+    if(Store.data.manualOrder && Store.data.manualOrder.length){
+      const newIds=sel.map(t=>t.id);
+      Store.data.manualOrder=[...newIds, ...Store.data.manualOrder.filter(id=>!newIds.includes(id))];
+      Store.save(); CloudSync.pushManualOrder();
+    }
     draftSel.clear(); toast(`${sel.length} ajoutée(s) aux opérations`); renderClasser();
   } else if(act==='dup'){
-    sel.forEach(t=>{ const c=JSON.parse(JSON.stringify(t)); delete c.id; c.status='draft'; Store.add(c); });
+    sel.forEach(t=>{ const c=JSON.parse(JSON.stringify(t)); delete c.id; c._cloudUpdatedAt=null; c.status='draft'; Store.add(c); });
     toast(`${sel.length} dupliquée(s)`); renderClasser();
   } else if(act==='del'){
     confirmModal(`Supprimer ${sel.length} ligne(s) du brouillon ?`, ()=>{
@@ -766,7 +774,7 @@ function setupComboboxes(t){
   const optC2=()=>REF.cat2[$('#fType').value+'||'+$('#fCat1').value]||[];
   const optC3=()=>REF.cat3[$('#fType').value+'||'+$('#fCat2').value]||[];
   const optNat=()=>REF.natures.map(n=>REF.natureLabels[n]||n);
-  const optSeason=()=>allSeasons();
+  const optSeason=()=>[...allSeasons()].reverse();
   const optAdh=()=>REF.adherents.slice();
   function refreshCompte(){
     const key=$('#fType').value+'||'+$('#fCat1').value+'||'+$('#fCat2').value;
@@ -857,7 +865,7 @@ function commitTx(patch){
     refreshCurrent();   // met à jour la liste en arrière-plan (ex: "À classer") sans fermer la feuille
     return;
   }
-  closeSheet(); toast(editId?'Enregistré ✓':'Ajouté au brouillon');
+  closeSheet(); toast(editId?'Enregistré ✓':'✓ Opération ajoutée au brouillon');
   const active=document.querySelector('.view.active').id.replace('v-','');
   go(editId? (active==='import'?'ops':active) : 'classer');
 }
@@ -1208,7 +1216,7 @@ function duplicateOpsSel(){
   const ids=[...opsSel];
   if(!ids.length){ toast('Sélectionne au moins une ligne'); return; }
   const sel=ids.map(id=>Store.all().find(t=>t.id===id)).filter(Boolean);
-  const created=sel.map(t=>{ const c=JSON.parse(JSON.stringify(t)); delete c.id; c.status='draft'; c.origStatus=''; return Store.add(c); });
+  const created=sel.map(t=>{ const c=JSON.parse(JSON.stringify(t)); delete c.id; c._cloudUpdatedAt=null; c.status='draft'; c.origStatus=''; return Store.add(c); });
   clearOpsSel();
   if(created.length===1){
     toast('Dupliquée en brouillon — à ajuster');
@@ -1376,7 +1384,7 @@ function resolveAdh(t){
   for(const [a,an] of adhListNorm()){ if(c===an || c.startsWith(an) || an.startsWith(c)) return a; }
   return '';
 }
-function reportAdh(tx, targetId){
+function reportAdh(tx, targetId, q, sortMode){
   targetId = targetId || 'repBody';
   const by={};
   tx.forEach(t=>{ const a=resolveAdh(t); if(!a)return;
@@ -1384,7 +1392,12 @@ function reportAdh(tx, targetId){
     const v=amt(t);
     if(t.typeflux==='PRODUITS')by[a].prod+=v; else by[a].char+=v;
     by[a].lines.push(t); });
-  const rows=Object.entries(by).sort((a,b)=>(b[1].prod+b[1].char)-(a[1].prod+a[1].char)).map(([a,d])=>{
+  let entries=Object.entries(by);
+  if(q) entries=entries.filter(([a])=>norm(a).includes(q));
+  if(sortMode==='alpha') entries.sort((a,b)=>a[0].localeCompare(b[0],'fr'));
+  else if(sortMode==='netAsc') entries.sort((a,b)=>(a[1].prod+a[1].char)-(b[1].prod+b[1].char));
+  else entries.sort((a,b)=>(b[1].prod+b[1].char)-(a[1].prod+a[1].char));
+  const rows=entries.map(([a,d])=>{
     const net=d.prod+d.char;
     // Détail regroupé par intitulé, recettes et dépenses séparées
     const recettes={}, depenses={};
@@ -1406,7 +1419,48 @@ function reportAdh(tx, targetId){
         <div class="adh-block"><div class="adh-bh" style="color:var(--red)">▸ Dépenses</div>${depHtml}</div>
       </div></details>`;
   }).join('');
-  $('#'+targetId).innerHTML=`<p class="note">Recettes / dépenses / net par adhérent ${repSeason?'(saison '+repSeason+')':'(toutes saisons)'}. Les dépenses incluent les lignes dont le nom figure en commentaire (licences, assurances…).</p>`+(rows||'<div class="empty">Aucun adhérent renseigné</div>');
+  $('#'+targetId).innerHTML=`<p class="note">Recettes / dépenses / net par adhérent ${repSeason?'(saison '+repSeason+')':'(toutes saisons)'}. Les dépenses incluent les lignes dont le nom figure en commentaire (licences, assurances…).</p>`+(rows||`<div class="empty">${q?'Aucun adhérent ne correspond à la recherche':'Aucun adhérent renseigné'}</div>`);
+}
+const ADH_CATS=['ADHESION','LICENCE','ASSURANCE','FORMATION'];
+// Sous-onglet "Adhésions" : 1) ce que chaque adhérent a réglé au club
+// (recettes) pour adhésion/licence/assurance/formation ; 2) ce que le club a
+// payé pour chaque adhérent (dépenses — FFESSM, Laffont assurance...), pour
+// les mêmes catégories.
+function reportAdhesions(tx, targetId, q, sortMode){
+  targetId = targetId || 'repBody';
+  const scoped = tx.filter(t=>ADH_CATS.includes(t.cat2));
+  function buildGroups(list){
+    const by={};
+    list.forEach(t=>{ const a=resolveAdh(t); if(!a) return;
+      by[a]=by[a]||{total:0,lines:[]};
+      by[a].total+=amt(t);
+      by[a].lines.push(t);
+    });
+    let entries=Object.entries(by);
+    if(q) entries=entries.filter(([a])=>norm(a).includes(q));
+    if(sortMode==='alpha') entries.sort((a,b)=>a[0].localeCompare(b[0],'fr'));
+    else if(sortMode==='netAsc') entries.sort((a,b)=>Math.abs(a[1].total)-Math.abs(b[1].total));
+    else entries.sort((a,b)=>Math.abs(b[1].total)-Math.abs(a[1].total));
+    return entries;
+  }
+  function renderGroup(entries,color){
+    if(!entries.length) return `<div class="empty">${q?'Aucun adhérent ne correspond à la recherche':'Aucune ligne sur la période'}</div>`;
+    return entries.map(([a,d])=>{
+      const lineHtml=d.lines.slice().sort((x,y)=>(x.date||'').localeCompare(y.date||'')).map(l=>
+        `<div class="dline"><span>${fmtDateY(l.date)} · ${esc(l.libelle||l.cat2)}${l.cat3?' · '+esc(l.cat3):''}</span><span class="num" style="color:${color}">${eur(amt(l))}</span></div>`
+      ).join('');
+      return `<details class="grp"><summary><span>${esc(a)}</span><span class="num" style="color:${color};font-weight:700">${eur(Math.abs(d.total))}</span></summary>
+        <div class="body">${lineHtml}</div></details>`;
+    }).join('');
+  }
+  const credEntries=buildGroups(scoped.filter(t=>t.typeflux==='PRODUITS'));
+  const debEntries=buildGroups(scoped.filter(t=>t.typeflux==='CHARGES'));
+  $('#'+targetId).innerHTML=`
+    <p class="note">Adhésion, licence, assurance, formation ${repSeason?'(saison '+repSeason+')':'(toutes saisons)'}.</p>
+    <div class="adh-bh" style="color:var(--green)">▸ Réglé par l'adhérent (recettes)</div>
+    ${renderGroup(credEntries,'var(--green)')}
+    <div class="adh-bh" style="color:var(--red);margin-top:16px">▸ Payé par le club pour l'adhérent — FFESSM / assurance (dépenses)</div>
+    ${renderGroup(debEntries,'var(--red)')}`;
 }
 function reportSortie(tx, targetId){
   targetId = targetId || 'repBody';
@@ -1474,14 +1528,22 @@ function reportSortie(tx, targetId){
   $('#'+targetId).innerHTML=`<p class="note">Recettes, dépenses et net par sortie / voyage ${repSeason?'(saison '+repSeason+')':'(toutes saisons)'}. Touche une sortie pour voir qui a payé et qui reste à payer.</p>`+
     (blocks||'<div class="empty">Aucune sortie</div>');
 }
+let adhMode='general';
 function renderAdherents(){
   const sel=$('#adhSeasonSel');
   if(sel && !sel.dataset.init){ sel.dataset.init='1'; sel.onchange=()=>{ repSeason=sel.value||null; renderAdherents(); }; }
   if(sel){ const seasons=allSeasons(); if(repSeason===null) repSeason=curSeason();
     sel.innerHTML='<option value="">Toutes les saisons</option>'+seasons.map(s=>`<option value="${s}" ${s===repSeason?'selected':''}>${s}</option>`).join('');
     sel.value=repSeason||''; }
+  const segBtns=document.querySelectorAll('#adhSeg button');
+  if(segBtns.length && !segBtns[0].dataset.init){
+    segBtns.forEach(b=>{ b.dataset.init='1'; b.onclick=()=>{ adhMode=b.dataset.a; segBtns.forEach(x=>x.classList.toggle('on',x===b)); renderAdherents(); }; });
+  }
   const tx=Store.all().filter(t=>isClassified(t) && !isFuture(t) && !isDraft(t) && (!repSeason || t.season===repSeason));
-  reportAdh(tx,'adhBody');
+  const q=norm(($('#adhSearch')&&$('#adhSearch').value)||'');
+  const sortMode=($('#adhSort')&&$('#adhSort').value)||'net';
+  if(adhMode==='adhesions') reportAdhesions(tx,'adhBody',q,sortMode);
+  else reportAdh(tx,'adhBody',q,sortMode);
 }
 function renderSorties(){
   const sel=$('#sortieSeasonSel');
