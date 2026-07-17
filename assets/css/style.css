@@ -90,6 +90,8 @@ nav .badge{position:absolute;top:4px;right:50%;margin-right:-22px;background:var
 .txline .txdate{flex:0 0 auto;font-size:10.5px;color:var(--muted);white-space:nowrap}
 .txline .amtwrap{flex:0 0 auto;display:flex;align-items:baseline;gap:6px;white-space:nowrap}
 .txline .amt{font-size:13.5px;white-space:nowrap}
+.txline .amt.pos{color:var(--green)}
+.txline .amt.neg{color:var(--red)}
 .txline .run{font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
 .txline .txmeta .pill{padding:1px 7px;font-size:10px;white-space:normal;max-width:none}
 .txline .txmeta .tag.adh{white-space:nowrap;font-size:10.5px}
