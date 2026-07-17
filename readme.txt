@@ -21,6 +21,16 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.13.1 — 04/07/2026
+--------------------
+Vers brouillons + bandeau collant (Opérations).
+1) Nouveau bouton "↩ Vers brouillons" dans la barre de sélection :
+   repasse la sélection en brouillon, avec confirmation.
+2) Bandeau collant : recherche, comptes/filtres et barre de
+   sélection restent visibles en scrollant, positionnés sous
+   l'en-tête. Hauteur d'en-tête mesurée dynamiquement (variable CSS
+   --header-h) pour s'adapter au contenu des badges.
+
 v0.13.0 — 04/07/2026
 --------------------
 Correctif duplication + tri saisons + Adhérents enrichi.
