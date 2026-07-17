@@ -21,6 +21,17 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.13.4 — 04/07/2026
+--------------------
+Retrait texte explicatif Général + Adhésions en tableau par
+catégorie.
+1) Retrait du texte "Recettes / dépenses / net par adhérent..." en
+   haut du sous-onglet Général.
+2) Sous-onglet Adhésions refondu en tableau : une ligne par
+   adhérent, une colonne par catégorie (Adhésion, Licence,
+   Assurance, Formation) + Total. Deux tableaux : recettes (réglé
+   par l'adhérent) puis dépenses (payé par le club).
+
 v0.13.3 — 04/07/2026
 --------------------
 Bandeau collant dans Saisie (barre Publier + bouton Ajouter).
