@@ -21,6 +21,13 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.13.5 — 04/07/2026
+--------------------
+Couleurs vert/rouge des montants dans Opérations.
+Corrige une régression : les classes .pos/.neg étaient générées par
+txRow() mais la règle CSS de couleur avait été supprimée par erreur
+en v0.11.5. Ajout de .txline .amt.pos (vert) et .amt.neg (rouge).
+
 v0.13.4 — 04/07/2026
 --------------------
 Retrait texte explicatif Général + Adhésions en tableau par
