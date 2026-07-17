@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Scuborga · bêta 0.13.1</title>
-<link rel="stylesheet" href="assets/css/style.css?v=0.13.1">
+<title>Scuborga · bêta 0.13.2</title>
+<link rel="stylesheet" href="assets/css/style.css?v=0.13.2">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -30,7 +30,7 @@
         <h1 id="hTitle">Opérations</h1>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-        <span class="version-badge" id="appVersion">bêta 0.13.1</span>
+        <span class="version-badge" id="appVersion">bêta 0.13.2</span>
         <span id="syncBadge" class="sync-ok" onclick="go('param');paramOpen('sync')" style="cursor:pointer">☁︎ Synchronisé</span>
       </div>
     </div>
@@ -63,16 +63,16 @@
 
   <!-- SAISIE (brouillon) -->
   <section class="view" id="v-classer">
-    <button class="btn" style="margin-bottom:14px;font-size:16px;padding:17px 16px" onclick="openTx(null,'REEL')">＋ Ajouter une opération</button>
     <div id="draftActions" class="draftbar" style="display:none">
       <label class="selall"><input type="checkbox" id="draftAll" onchange="toggleAllDrafts(this.checked)"> Tout</label>
       <span id="draftSelCount" class="tag"></span>
       <span style="flex:1"></span>
-      <button class="btn sm" onclick="draftAction('add')">✓ Aux opérations</button>
+      <button class="btn sm" onclick="draftAction('add')">✓ Publier</button>
       <button class="btn sec sm" onclick="draftAction('dup')">⎘ Dupliquer</button>
       <button class="btn sec sm" onclick="draftAction('edit')">✎ Modifier</button>
       <button class="btn sec sm" onclick="draftAction('del')"><span class="del">🗑 Supprimer</span></button>
     </div>
+    <button class="btn" style="margin-bottom:14px;font-size:16px;padding:17px 16px" onclick="openTx(null,'REEL')">＋ Ajouter une opération</button>
     <div id="incoherZone"></div>
     <div id="classerHead" style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:600;letter-spacing:.03em;margin:4px 0 8px"></div>
     <div id="classerEmpty" class="empty" style="display:none">
@@ -195,8 +195,8 @@
 <div class="sheet-bg" id="sheetBg"><div class="sheet" id="sheet"></div></div>
 <div class="toast" id="toast"></div>
 
-<script src="assets/js/data.js?v=0.13.1"></script>
-<script src="assets/js/app.js?v=0.13.1"></script>
+<script src="assets/js/data.js?v=0.13.2"></script>
+<script src="assets/js/app.js?v=0.13.2"></script>
 
 </body>
 </html>
