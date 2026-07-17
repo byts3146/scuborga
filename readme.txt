@@ -21,6 +21,13 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.13.3 — 04/07/2026
+--------------------
+Bandeau collant dans Saisie (barre Publier + bouton Ajouter).
+Réutilise le mécanisme .ops-sticky : la barre de sélection et le
+bouton "+ Ajouter une opération" restent visibles en scrollant dans
+Saisie, positionnés sous l'en-tête.
+
 v0.13.2 — 04/07/2026
 --------------------
 Réorganisation des boutons de Saisie : Publier avant Ajouter.
