@@ -309,7 +309,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.13.3',channel:'bêta',storageKey:'scuborga_v0_3_0_beta',releaseDate:'04/07/2026'};
+const APP_META={name:'Scuborga',version:'0.13.4',channel:'bêta',storageKey:'scuborga_v0_3_0_beta',releaseDate:'04/07/2026'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -1433,22 +1433,23 @@ function reportAdh(tx, targetId, q, sortMode){
         <div class="adh-block"><div class="adh-bh" style="color:var(--red)">▸ Dépenses</div>${depHtml}</div>
       </div></details>`;
   }).join('');
-  $('#'+targetId).innerHTML=`<p class="note">Recettes / dépenses / net par adhérent ${repSeason?'(saison '+repSeason+')':'(toutes saisons)'}. Les dépenses incluent les lignes dont le nom figure en commentaire (licences, assurances…).</p>`+(rows||`<div class="empty">${q?'Aucun adhérent ne correspond à la recherche':'Aucun adhérent renseigné'}</div>`);
+  $('#'+targetId).innerHTML=rows||`<div class="empty">${q?'Aucun adhérent ne correspond à la recherche':'Aucun adhérent renseigné'}</div>`;
 }
 const ADH_CATS=['ADHESION','LICENCE','ASSURANCE','FORMATION'];
-// Sous-onglet "Adhésions" : 1) ce que chaque adhérent a réglé au club
-// (recettes) pour adhésion/licence/assurance/formation ; 2) ce que le club a
-// payé pour chaque adhérent (dépenses — FFESSM, Laffont assurance...), pour
-// les mêmes catégories.
+const ADH_CAT_LABELS={ADHESION:'Adhésion',LICENCE:'Licence',ASSURANCE:'Assurance',FORMATION:'Formation'};
+// Sous-onglet "Adhésions" : tableau adhérent x catégorie.
+// 1) ce que chaque adhérent a réglé au club (recettes)
+// 2) ce que le club a payé pour chaque adhérent (dépenses — FFESSM, Laffont assurance...)
 function reportAdhesions(tx, targetId, q, sortMode){
   targetId = targetId || 'repBody';
   const scoped = tx.filter(t=>ADH_CATS.includes(t.cat2));
-  function buildGroups(list){
+  function buildRows(list){
     const by={};
     list.forEach(t=>{ const a=resolveAdh(t); if(!a) return;
-      by[a]=by[a]||{total:0,lines:[]};
-      by[a].total+=amt(t);
-      by[a].lines.push(t);
+      by[a]=by[a]||{ADHESION:0,LICENCE:0,ASSURANCE:0,FORMATION:0,total:0};
+      const v=amt(t);
+      by[a][t.cat2]+=v;
+      by[a].total+=v;
     });
     let entries=Object.entries(by);
     if(q) entries=entries.filter(([a])=>norm(a).includes(q));
@@ -1457,24 +1458,22 @@ function reportAdhesions(tx, targetId, q, sortMode){
     else entries.sort((a,b)=>Math.abs(b[1].total)-Math.abs(a[1].total));
     return entries;
   }
-  function renderGroup(entries,color){
+  function renderTable(entries,color){
     if(!entries.length) return `<div class="empty">${q?'Aucun adhérent ne correspond à la recherche':'Aucune ligne sur la période'}</div>`;
-    return entries.map(([a,d])=>{
-      const lineHtml=d.lines.slice().sort((x,y)=>(x.date||'').localeCompare(y.date||'')).map(l=>
-        `<div class="dline"><span>${fmtDateY(l.date)} · ${esc(l.libelle||l.cat2)}${l.cat3?' · '+esc(l.cat3):''}</span><span class="num" style="color:${color}">${eur(amt(l))}</span></div>`
-      ).join('');
-      return `<details class="grp"><summary><span>${esc(a)}</span><span class="num" style="color:${color};font-weight:700">${eur(Math.abs(d.total))}</span></summary>
-        <div class="body">${lineHtml}</div></details>`;
-    }).join('');
+    const rows=entries.map(([a,d])=>`<tr><td class="adh-name">${esc(a)}</td>`+
+      ADH_CATS.map(c=>`<td>${d[c]?eur(d[c]):'—'}</td>`).join('')+
+      `<td style="font-weight:700;color:${color}">${eur(Math.abs(d.total))}</td></tr>`).join('');
+    return `<div style="overflow-x:auto"><table class="adh-table">
+      <thead><tr><th>Adhérent</th>${ADH_CATS.map(c=>`<th>${ADH_CAT_LABELS[c]}</th>`).join('')}<th>Total</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>`;
   }
-  const credEntries=buildGroups(scoped.filter(t=>t.typeflux==='PRODUITS'));
-  const debEntries=buildGroups(scoped.filter(t=>t.typeflux==='CHARGES'));
+  const credEntries=buildRows(scoped.filter(t=>t.typeflux==='PRODUITS'));
+  const debEntries=buildRows(scoped.filter(t=>t.typeflux==='CHARGES'));
   $('#'+targetId).innerHTML=`
-    <p class="note">Adhésion, licence, assurance, formation ${repSeason?'(saison '+repSeason+')':'(toutes saisons)'}.</p>
     <div class="adh-bh" style="color:var(--green)">▸ Réglé par l'adhérent (recettes)</div>
-    ${renderGroup(credEntries,'var(--green)')}
+    ${renderTable(credEntries,'var(--green)')}
     <div class="adh-bh" style="color:var(--red);margin-top:16px">▸ Payé par le club pour l'adhérent — FFESSM / assurance (dépenses)</div>
-    ${renderGroup(debEntries,'var(--red)')}`;
+    ${renderTable(debEntries,'var(--red)')}`;
 }
 function reportSortie(tx, targetId){
   targetId = targetId || 'repBody';

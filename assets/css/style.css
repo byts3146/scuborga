@@ -143,6 +143,11 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 .adh-rc .v{font-size:15px;font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums}
 .adh-block{margin-bottom:10px}
 .adh-bh{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:6px 0 4px;border-bottom:1px solid var(--line);margin-bottom:2px}
+.adh-table{width:100%;border-collapse:collapse;font-size:12.5px;white-space:nowrap}
+.adh-table th{text-align:right;font-size:10.5px;color:var(--muted);text-transform:uppercase;font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line)}
+.adh-table th:first-child{text-align:left}
+.adh-table td{text-align:right;padding:7px 8px;border-bottom:1px solid rgba(221,225,230,.5)}
+.adh-table td.adh-name{text-align:left;font-weight:600;color:var(--text)}
 .dline{display:flex;justify-content:space-between;gap:10px;padding:6px 2px;font-size:13px;border-bottom:1px solid rgba(221,225,230,.5)}
 .dline:last-child{border-bottom:none}
 .dline span:first-child{color:var(--text)}
