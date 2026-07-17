@@ -237,6 +237,7 @@ const CloudSync = {
     if(this.queue.length===0){ el.textContent='☁︎ Synchronisé'; el.className='sync-ok'; }
     else if(this.failed>0){ el.textContent='⚠︎ '+this.queue.length+' en attente'; el.className='sync-warn'; }
     else { el.textContent='⟳ Envoi… ('+this.queue.length+')'; el.className='sync-busy'; }
+    if(typeof updateHeaderHeight==='function') updateHeaderHeight();
   }
 };
 
@@ -308,7 +309,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ============ APP META ============ */
-const APP_META={name:'Scuborga',version:'0.13.0',channel:'bêta',storageKey:'scuborga_v0_3_0_beta',releaseDate:'04/07/2026'};
+const APP_META={name:'Scuborga',version:'0.13.1',channel:'bêta',storageKey:'scuborga_v0_3_0_beta',releaseDate:'04/07/2026'};
 document.title=`${APP_META.name} · ${APP_META.channel} ${APP_META.version}`;
 
 /* ============ HELPERS ============ */
@@ -1189,6 +1190,19 @@ function clearFilters(){ opsFilters={}; opsAccount=null; $('#opsSearch').value='
 /* --- Sélection multiple (Opérations) --- */
 let opsSel=new Set();
 function clearOpsSel(){ opsSel=new Set(); renderOps(); }
+// Repasse la sélection en brouillon (retour vers Saisie), avec confirmation
+// puisque ça retire les lignes des Opérations tant qu'elles n'y sont pas
+// revalidées.
+function moveOpsSelToDraft(){
+  const ids=[...opsSel];
+  if(!ids.length){ toast('Sélectionne au moins une ligne'); return; }
+  confirmModal(`Repasser ${ids.length} opération(s) en brouillon ? Elles disparaîtront d'Opérations jusqu'à validation depuis Saisie.`, ()=>{
+    ids.forEach(id=>Store.update(id,{status:'draft'}));
+    clearOpsSel();
+    toast(`${ids.length} repassée(s) en brouillon`);
+    go('classer');
+  }, '↩ Repasser en brouillon');
+}
 // Déplace le bloc sélectionné d'un cran (haut/bas) dans l'ordre manuel de la
 // liste. Fonctionne même pour une sélection non contiguë (déplace chaque
 // ligne sélectionnée au-delà de sa voisine non sélectionnée la plus proche).
@@ -2324,6 +2338,16 @@ async function startApp(){
   }
   go('ops');
   updateBadge();
+  updateHeaderHeight();
 }
+// Mesure la hauteur réelle de l'en-tête (variable selon le contenu des
+// badges) pour positionner correctement le bandeau collant d'Opérations
+// juste en dessous, sans le chevaucher.
+function updateHeaderHeight(){
+  const h=document.querySelector('header');
+  if(h) document.documentElement.style.setProperty('--header-h', h.offsetHeight+'px');
+}
+window.addEventListener('resize', updateHeaderHeight);
+window.addEventListener('load', updateHeaderHeight);
 // Au chargement : tente de restaurer une session ; sinon l'écran de connexion reste affiché.
 checkSession();
