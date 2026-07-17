@@ -21,6 +21,14 @@ directement. Vérifié : déploiement du commit suivant réussi
 Pas de changement de version applicative (fichier de config du
 dépôt, pas du code de l'app).
 
+v0.13.2 — 04/07/2026
+--------------------
+Réorganisation des boutons de Saisie : Publier avant Ajouter.
+"✓ Aux opérations" renommé en "✓ Publier". La barre de sélection
+(visible seulement si des lignes sont sélectionnées) est désormais
+positionnée avant le bouton "+ Ajouter une opération" au lieu
+d'après.
+
 v0.13.1 — 04/07/2026
 --------------------
 Vers brouillons + bandeau collant (Opérations).
